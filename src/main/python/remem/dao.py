@@ -1,3 +1,3 @@
-import remem._dao as _dao
+from remem._dao import ListRegisteredDatabases as ListRegisteredDatabases
 
-pub_method = _dao.pub_method
+ListRegisteredDatabases
