@@ -1,0 +1,5 @@
+mypy:
+    script text:
+        mypy --strict src/main/python
+    working directory:
+        C:/..../projects/python/remem2
