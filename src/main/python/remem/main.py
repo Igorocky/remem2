@@ -1,47 +1,46 @@
-import re
-
-from remem.commands import Command
-from remem.dao import ListRegisteredDatabases
+from remem.commands import make_cmd, find_commands_by_pattern
+from remem.console import select_single_option
 
 
-class Help(Command):
-    def __init__(self, all_commands: list[Command]):
-        all_commands.append(self)
-        self.all_commands = all_commands
-
-    def get_name(self) -> str:
-        return 'help'
-
-    def get_description(self) -> str:
-        return 'Show help'
-
-    def run(self, user_input: str) -> None:
-        for cmd in commands:
-            print(f'{cmd.get_name()} - {cmd.get_description()}')
+def say_hi() -> None:
+    print("Hi!")
 
 
-class Exit(Command):
-    def get_name(self) -> str:
-        return 'exit'
-
-    def get_description(self) -> str:
-        return 'Exit from this program'
-
-    def run(self, user_input: str) -> None:
-        exit(0)
+def say_bye() -> None:
+    print("Bye!")
 
 
-commands: list[Command] = [
-    ListRegisteredDatabases(),
+def exit_remem() -> None:
+    exit(0)
+
+
+def show_help() -> None:
+    print()
+    for c in commands:
+        if c.descr:
+            print(f'{c.name} - {c.descr}')
+        else:
+            print(c.name)
+
+
+commands = [
+    make_cmd(say_hi),
+    make_cmd(say_bye),
+    make_cmd(exit_remem),
+    make_cmd(show_help),
 ]
-help = Help(commands)
-commands.append(Exit())
 
 if __name__ == '__main__':
     while True:
+        # print(f'{c.error('AAA')} {c.success('BBB')} {c.info('CCC')}')
         print()
         inp = input().strip()
-        cmd = re.split(r'\s', inp)[0].strip()
-        for c in commands:
-            if cmd == c.get_name():
-                c.run(inp)
+        cmds = find_commands_by_pattern(commands, inp)
+        if len(cmds) == 1:
+            cmds[0].func()
+        elif len(cmds) == 0:
+            print('No matches found')
+        else:
+            idx = select_single_option([c.name for c in cmds])
+            if idx is not None:
+                cmds[idx].func()
