@@ -1,3 +1,4 @@
+import remem.console as c
 from remem.commands import make_cmd, find_commands_by_pattern
 from remem.console import select_single_option
 
@@ -32,15 +33,15 @@ commands = [
 
 if __name__ == '__main__':
     while True:
-        # print(f'{c.error('AAA')} {c.success('BBB')} {c.info('CCC')}')
         print()
-        inp = input().strip()
+        inp = input(f'{c.prompt(">")} ').strip()
         cmds = find_commands_by_pattern(commands, inp)
         if len(cmds) == 1:
             cmds[0].func()
         elif len(cmds) == 0:
             print('No matches found')
         else:
+            print(f'Multiple commands match "{inp}". Please select one:')
             idx = select_single_option([c.name for c in cmds])
             if idx is not None:
                 cmds[idx].func()
