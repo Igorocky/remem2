@@ -9,13 +9,17 @@ class Cmd:
     name: str
     name_arr: list[str]
     descr: str
-    func: Callable[[str | None], None]
+    func: Callable[[], None]
 
 
-def make_cmd(name: str, func: Callable[[str | None], None], descr: str = "") -> Cmd:
+def split_by_space(s: str) -> list[str]:
+    return [p.strip() for p in re.split(r'\s+', s) if p.strip() != '']
+
+
+def make_cmd(name: str, func: Callable[[], None], descr: str = "") -> Cmd:
     return Cmd(
         name=name,
-        name_arr=[p.strip() for p in re.split(r'\s+', name) if p.strip() != ''],
+        name_arr=split_by_space(name),
         descr=descr,
         func=func
     )
@@ -39,13 +43,13 @@ def make_cmd_pat(text: str) -> CmdPat:
     )
 
 
-def cmd_matches_pat(cmd: Cmd, pat: CmdPat) -> bool:
+def arr_str_matches_pat(arr: list[str], pat: CmdPat) -> bool:
     def go(name_idx: int, pat_idx: int) -> bool:
         if pat_idx >= len(pat.parts):
             return True
-        elif name_idx >= len(cmd.name_arr):
+        elif name_idx >= len(arr):
             return False
-        elif pat.parts[pat_idx].pat.match(cmd.name_arr[name_idx]):
+        elif pat.parts[pat_idx].pat.match(arr[name_idx]):
             return go(name_idx + 1, pat_idx + 1)
         else:
             return go(name_idx + 1, pat_idx)
@@ -53,27 +57,23 @@ def cmd_matches_pat(cmd: Cmd, pat: CmdPat) -> bool:
     return go(0, 0)
 
 
-class CmdMatchesPatTest(TestCase):
-    def test_cmd_matches_pat(self) -> None:
-        self.assertTrue(cmd_matches_pat(
-            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda _: None),
-            make_cmd_pat('mak n car tr')
-        ))
-        self.assertTrue(cmd_matches_pat(
-            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda _: None),
-            make_cmd_pat('mak car tr')
-        ))
-        self.assertTrue(cmd_matches_pat(
-            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda _: None),
-            make_cmd_pat('mak car ')
-        ))
+class ArrStrMatchesPatTest(TestCase):
+    def test_arr_str_matches_pat(self) -> None:
+        self.assertTrue(arr_str_matches_pat(['make', 'new', 'card', 'translate'], make_cmd_pat('mak n car tr')))
+        self.assertTrue(arr_str_matches_pat(['make', 'new', 'card', 'translate'], make_cmd_pat('mak car tr')))
+        self.assertTrue(arr_str_matches_pat(['make', 'new', 'card', 'translate'], make_cmd_pat('ake car ')))
+        self.assertTrue(arr_str_matches_pat(['make', 'new', 'card', 'translate'], make_cmd_pat('ake nsla ')))
+
+
+def cmd_matches_pat(cmd: Cmd, pat: CmdPat) -> bool:
+    return arr_str_matches_pat(cmd.name_arr, pat)
 
 
 class CollectionOfCommands:
     def __init__(self) -> None:
         self._commands: list[Cmd] = []
 
-    def add_command(self, name: str, func: Callable[[str | None], None], descr: str = "") -> None:
+    def add_command(self, name: str, func: Callable[[], None], descr: str = "") -> None:
         self._commands.append(make_cmd(name, func, descr))
         self._commands.sort(key=lambda c: c.name)
 

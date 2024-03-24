@@ -3,3 +3,9 @@ mypy:
         mypy --strict src/main/python
     working directory:
         C:/..../projects/python/remem2
+
+run all tests:
+    script text:
+        python -m unittest discover -p '*.py' -v -s remem
+    working directory:
+        C:/..../projects/python/remem2/src/main/python

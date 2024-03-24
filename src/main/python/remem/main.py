@@ -40,23 +40,25 @@ def main() -> None:
     c = Console(app_settings=app_settings)
     database = Database(file_path=app_settings.database_file)
     commands = CollectionOfCommands()
-    commands.add_command('say hi', lambda _: say_hi())
-    commands.add_command('exit remem', lambda _: exit(0))
-    commands.add_command('show help', lambda _: show_help(commands))
+    commands.add_command('say hi', say_hi)
+    commands.add_command('exit remem', lambda: exit(0))
+    commands.add_command('show help', lambda: show_help(commands))
 
     while True:
         print()
         inp = input(f'{c.prompt(">")} ').strip()
         cmds = commands.find_commands_by_pattern(inp)
         if len(cmds) == 1:
-            cmds[0].func('')
+            print()
+            cmds[0].func()
         elif len(cmds) == 0:
-            print('No matches found')
+            print(f'No matches found for "{inp}"')
         else:
             print(f'Multiple commands match "{inp}". Please select one:')
             idx = select_single_option([c.name for c in cmds])
             if idx is not None:
-                cmds[idx].func('')
+                print()
+                cmds[idx].func()
 
 
 if __name__ == '__main__':
