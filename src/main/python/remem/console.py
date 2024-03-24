@@ -58,3 +58,19 @@ class Console:
 
     def prompt(self, text: str) -> str:
         return add_color(self._app_settings.console_colors_prompt, text)
+
+    def input(self, prompt: str) -> str:
+        print(self.prompt(prompt), end='')
+        return input()
+
+    def print_error(self, text: str) -> None:
+        print(self.error(text))
+
+    def print_success(self, text: str) -> None:
+        print(self.success(text))
+
+    def print_prompt(self, text: str) -> None:
+        print(self.prompt(text))
+
+    def print_info(self, text: str) -> None:
+        print(self.info(text))

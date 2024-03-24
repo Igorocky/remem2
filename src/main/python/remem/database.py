@@ -1,5 +1,4 @@
 import sqlite3
-from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -33,23 +32,3 @@ class Database:
 
     def _upgrade_database(self) -> None:
         pass
-
-
-@dataclass
-class Folder:
-    id: int
-    parent_id: int | None
-    name: str
-
-
-cur_path: list[Folder] = []
-# def cmd_show_current_folder():
-
-# def cmd_make_folder(args:str|None) -> None:
-#     if args is None:
-#         folder_name = input('Name of the new folder: ').strip()
-#     else:
-#         folder_name = args.strip()
-#     if folder_name == '':
-#         return
-#     database.con.execute('insert into FLD()')
