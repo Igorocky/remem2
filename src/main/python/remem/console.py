@@ -1,31 +1,10 @@
-from typing import Optional
+from typing import Optional, Tuple
 
-from remem.appsettings import app_settings
-
-
-def add_color(r: int, g: int, b: int, text: str) -> str:
-    return f'\033[38;2;{r};{g};{b}m{text}\033[0m'
+from remem.appsettings import AppSettings
 
 
-def error(text: str) -> str:
-    return add_color(255, 0, 0, text)
-
-
-def success(text: str) -> str:
-    return add_color(0, 255, 0, text)
-
-
-def info(text: str) -> str:
-    return add_color(0, 0, 255, text)
-
-
-def hint(text: str) -> str:
-    return add_color(0, 0, 255, text)
-
-
-def prompt(text: str) -> str:
-    color = app_settings.console_colors_prompt
-    return add_color(color[0], color[1], color[2], text)
+def add_color(color_rgb: Tuple[int, int, int], text: str) -> str:
+    return f'\033[38;2;{color_rgb[0]};{color_rgb[1]};{color_rgb[2]}m{text}\033[0m'
 
 
 def select_single_option(options: list[str]) -> Optional[int]:
@@ -46,3 +25,23 @@ def select_single_option(options: list[str]) -> Optional[int]:
                     return idx - 1
         except ValueError:
             pass
+
+
+class Console:
+    def __init__(self, app_settings: AppSettings) -> None:
+        self._app_settings = app_settings
+
+    def error(self, text: str) -> str:
+        return add_color(self._app_settings.console_colors_error, text)
+
+    def success(self, text: str) -> str:
+        return add_color(self._app_settings.console_colors_success, text)
+
+    def info(self, text: str) -> str:
+        return add_color(self._app_settings.console_colors_info, text)
+
+    def hint(self, text: str) -> str:
+        return add_color(self._app_settings.console_colors_hint, text)
+
+    def prompt(self, text: str) -> str:
+        return add_color(self._app_settings.console_colors_prompt, text)

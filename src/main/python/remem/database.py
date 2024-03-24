@@ -1,12 +1,11 @@
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
-
-from remem.appsettings import app_settings
-
-latest_db_version = 1
 
 
 class Database:
+    latest_db_version = 1
+
     def __init__(self, file_path: str) -> None:
         db_file = Path(file_path)
         if not db_file.parent.exists():
@@ -20,20 +19,37 @@ class Database:
 
         (db_ver,) = self.con.execute('pragma user_version').fetchone()
         if db_ver == 0:
-            self.init_database()
-        elif db_ver != latest_db_version:
-            self.upgrade_database()
+            self._init_database()
+        elif db_ver != Database.latest_db_version:
+            self._upgrade_database()
 
         (db_ver,) = self.con.execute('pragma user_version').fetchone()
-        if db_ver != latest_db_version:
+        if db_ver != Database.latest_db_version:
             raise Exception('Could not init database.')
 
-    def init_database(self) -> None:
+    def _init_database(self) -> None:
         self.con.executescript(Path('src/main/resources/schema_v1.sql').read_text('utf-8'))
         self.con.execute('pragma user_version = 1')
 
-    def upgrade_database(self) -> None:
+    def _upgrade_database(self) -> None:
         pass
 
 
-database = Database(file_path=app_settings.database_file)
+@dataclass
+class Folder:
+    id: int
+    parent_id: int | None
+    name: str
+
+
+cur_path: list[Folder] = []
+# def cmd_show_current_folder():
+
+# def cmd_make_folder(args:str|None) -> None:
+#     if args is None:
+#         folder_name = input('Name of the new folder: ').strip()
+#     else:
+#         folder_name = args.strip()
+#     if folder_name == '':
+#         return
+#     database.con.execute('insert into FLD()')

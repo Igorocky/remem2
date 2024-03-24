@@ -1,8 +1,10 @@
-import remem.console as c
-from remem.commands import make_cmd, find_commands_by_pattern
-from remem.console import select_single_option
 import os
-from remem.database import database as db
+import sys
+
+from remem.appsettings import load_app_settings
+from remem.commands import CollectionOfCommands
+from remem.console import Console, select_single_option
+from remem.database import Database
 
 
 def say_hi() -> None:
@@ -21,34 +23,41 @@ def clear_screen() -> None:
     os.system('cls')
 
 
-def show_help() -> None:
+def show_help(cmds: CollectionOfCommands) -> None:
     print()
-    for c in commands:
-        if c.descr:
-            print(f'{c.name} - {c.descr}')
+    for name, descr in cmds.list_commands():
+        if descr == '':
+            print(name)
         else:
-            print(c.name)
+            print(f'{name} - {descr}')
 
 
-commands = [
-    make_cmd(say_hi),
-    make_cmd(say_bye),
-    make_cmd(exit_remem),
-    make_cmd(clear_screen),
-    make_cmd(show_help),
-]
+def main() -> None:
+    settings_path = 'app-settings.json'
+    if len(sys.argv) > 1:
+        settings_path = sys.argv[1].strip()
+    app_settings = load_app_settings(settings_path)
+    c = Console(app_settings=app_settings)
+    database = Database(file_path=app_settings.database_file)
+    commands = CollectionOfCommands()
+    commands.add_command('say hi', lambda _: say_hi())
+    commands.add_command('exit remem', lambda _: exit(0))
+    commands.add_command('show help', lambda _: show_help(commands))
 
-if __name__ == '__main__':
     while True:
         print()
         inp = input(f'{c.prompt(">")} ').strip()
-        cmds = find_commands_by_pattern(commands, inp)
+        cmds = commands.find_commands_by_pattern(inp)
         if len(cmds) == 1:
-            cmds[0].func()
+            cmds[0].func('')
         elif len(cmds) == 0:
             print('No matches found')
         else:
             print(f'Multiple commands match "{inp}". Please select one:')
             idx = select_single_option([c.name for c in cmds])
             if idx is not None:
-                cmds[idx].func()
+                cmds[idx].func('')
+
+
+if __name__ == '__main__':
+    main()

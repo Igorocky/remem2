@@ -14,4 +14,5 @@ class AppSettings:
     console_colors_error: Tuple[int, int, int] = (255, 0, 0)
 
 
-app_settings = AppSettings(**json.loads(Path('app-settings.json').read_text('utf-8')))
+def load_app_settings(path: str) -> AppSettings:
+    return AppSettings(**json.loads(Path(path).read_text('utf-8')))

@@ -1,33 +1,22 @@
 import re
 from dataclasses import dataclass
-from typing import Callable, Pattern, Optional
+from typing import Callable, Pattern, Tuple
 from unittest import TestCase
-
-
-class Command:
-    def get_name(self) -> str:
-        return 'this is an abstract method'
-
-    def get_description(self) -> str:
-        return 'this is an abstract method'
-
-    def run(self, user_input: str) -> None:
-        pass
 
 
 @dataclass
 class Cmd:
     name: str
     name_arr: list[str]
-    descr: Optional[str]
-    func: Callable[[], None]
+    descr: str
+    func: Callable[[str | None], None]
 
 
-def make_cmd(func: Callable[[], None]) -> Cmd:
+def make_cmd(name: str, func: Callable[[str | None], None], descr: str = "") -> Cmd:
     return Cmd(
-        name=func.__name__,
-        name_arr=re.split('_', func.__name__),
-        descr=func.__doc__,
+        name=name,
+        name_arr=[p.strip() for p in re.split(r'\s+', name) if p.strip() != ''],
+        descr=descr,
         func=func
     )
 
@@ -67,19 +56,30 @@ def cmd_matches_pat(cmd: Cmd, pat: CmdPat) -> bool:
 class CmdMatchesPatTest(TestCase):
     def test_cmd_matches_pat(self) -> None:
         self.assertTrue(cmd_matches_pat(
-            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda: None),
+            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda _: None),
             make_cmd_pat('mak n car tr')
         ))
         self.assertTrue(cmd_matches_pat(
-            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda: None),
+            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda _: None),
             make_cmd_pat('mak car tr')
         ))
         self.assertTrue(cmd_matches_pat(
-            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda: None),
+            Cmd(name='', name_arr=['make', 'new', 'card', 'translate'], descr='', func=lambda _: None),
             make_cmd_pat('mak car ')
         ))
 
 
-def find_commands_by_pattern(cmds: list[Cmd], pat_text: str) -> list[Cmd]:
-    pat = make_cmd_pat(pat_text)
-    return [cmd for cmd in cmds if cmd_matches_pat(cmd, pat)]
+class CollectionOfCommands:
+    def __init__(self) -> None:
+        self._commands: list[Cmd] = []
+
+    def add_command(self, name: str, func: Callable[[str | None], None], descr: str = "") -> None:
+        self._commands.append(make_cmd(name, func, descr))
+        self._commands.sort(key=lambda c: c.name)
+
+    def find_commands_by_pattern(self, pat_text: str) -> list[Cmd]:
+        pat = make_cmd_pat(pat_text)
+        return [cmd for cmd in self._commands if cmd_matches_pat(cmd, pat)]
+
+    def list_commands(self) -> list[Tuple[str, str]]:
+        return [(c.name, c.descr) for c in self._commands]
