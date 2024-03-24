@@ -1,6 +1,7 @@
 import remem.console as c
 from remem.commands import make_cmd, find_commands_by_pattern
 from remem.console import select_single_option
+import os
 
 
 def say_hi() -> None:
@@ -13,6 +14,10 @@ def say_bye() -> None:
 
 def exit_remem() -> None:
     exit(0)
+
+
+def clear_screen() -> None:
+    os.system('cls')
 
 
 def show_help() -> None:
@@ -28,6 +33,7 @@ commands = [
     make_cmd(say_hi),
     make_cmd(say_bye),
     make_cmd(exit_remem),
+    make_cmd(clear_screen),
     make_cmd(show_help),
 ]
 
