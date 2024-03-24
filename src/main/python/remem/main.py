@@ -2,6 +2,7 @@ import remem.console as c
 from remem.commands import make_cmd, find_commands_by_pattern
 from remem.console import select_single_option
 import os
+from remem.database import database as db
 
 
 def say_hi() -> None:

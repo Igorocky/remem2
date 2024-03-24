@@ -6,6 +6,7 @@ from typing import Tuple
 
 @dataclass
 class AppSettings:
+    database_file: str = 'databases/remem.sqlite'
     console_colors_info: Tuple[int, int, int] = (0, 0, 255)
     console_colors_success: Tuple[int, int, int] = (0, 255, 0)
     console_colors_hint: Tuple[int, int, int] = (100, 100, 100)

@@ -1,2 +1,4 @@
 /.idea/
 /remem2.iml
+/databases/remem.sqlite
+/src/main/python/tmp.sqlite

@@ -50,12 +50,12 @@ create table CARD
     ext_id text not null unique ,
     fld_id integer not null references FLD(id) on delete restrict on update cascade ,
     typ integer not null references CARD_TYP(id) on delete restrict on update cascade ,
-    crt_time integer not null default unixepoch()
+    crt_time integer not null default (unixepoch())
 ) strict;
 
 create table CARD_EXT_ID_CHG
 (
-    time integer not null default unixepoch(),
+    time integer not null default (unixepoch()),
     card_id integer not null,
     card_ext_id text not null
 ) strict ;
@@ -82,7 +82,7 @@ END;
 
 create table TASK_HIST
 (
-    time integer not null default unixepoch(),
+    time integer not null default (unixepoch()),
     task integer not null references TASK(id) on delete cascade on update cascade ,
     mark real not null check ( 0 <= mark and mark <= 1 ),
     note text
@@ -99,7 +99,7 @@ create table CARD_TRAN
 
 create table CARD_TRAN_CHG
 (
-    time integer not null default unixepoch(),
+    time integer not null default (unixepoch()),
     id integer not null,
     lang1 integer not null references LANG(id) on delete restrict on update cascade ,
     text1 text not null ,
