@@ -20,17 +20,17 @@ class Dao:
 def make_new_folder(dao: Dao, db: Database, c: Console) -> None:
     name = c.input("New folder name: ").strip()
     if name == '':
-        c.print_error('Folder name must not be empty')
+        c.error('Folder name must not be empty')
         return
     db.con.execute(
         f'insert into FLD(parent, name) values (:parent, :name)',
         {'parent': dao.cur_path[-1].id if len(dao.cur_path) > 0 else None, 'name': name}
     )
-    c.print_success('A folder created')
+    c.success('A folder created')
 
 
 def show_current_folder(dao: Dao, c: Console) -> None:
-    print(c.info('Current folder: '), end='')
+    print(c.mark_info('Current folder: '), end='')
     print('/' + '/'.join([f'{f.name}[{f.id}]' for f in dao.cur_path]))
 
 
@@ -45,7 +45,7 @@ def list_all_folders(db: Database) -> None:
         )
         select level, id, name from folders
     """):
-        print(f'{"    "*r[0]}{r[2]}[{r[1]}]')
+        print(f'{"    " * r[0]}{r[2]}[{r[1]}]')
 
 
 def go_to_folder_by_id(dao: Dao, db: Database, c: Console) -> None:
@@ -66,9 +66,22 @@ def go_to_folder_by_id(dao: Dao, db: Database, c: Console) -> None:
     show_current_folder(dao, c)
 
 
+def delete_folder_by_id(dao: Dao, db: Database, c: Console) -> None:
+    folder_id = int(c.input("id of the folder to delete: ").strip())
+    if db.con.execute('select count(1) from fld where id = :folder_id', {'folder_id': folder_id}).fetchone()[0] == 0:
+        c.error(f'The folder with id of {folder_id} does not exist.')
+    else:
+        db.con.execute('delete from fld where id = :folder_id', {'folder_id': folder_id})
+        c.success('The folder is deleted.')
+        if len(dao.cur_path) > 0 and dao.cur_path[-1].id == folder_id:
+            dao.cur_path.pop()
+            show_current_folder(dao, c)
+
+
 def add_dao_commands(commands: CollectionOfCommands, db: Database, c: Console) -> None:
     dao = Dao()
     commands.add_command('make new folder', lambda: make_new_folder(dao, db, c))
     commands.add_command('show current folder', lambda: show_current_folder(dao, c))
     commands.add_command('list all folders', lambda: list_all_folders(db))
     commands.add_command('go to folder by id', lambda: go_to_folder_by_id(dao, db, c))
+    commands.add_command('delete folder by id', lambda: delete_folder_by_id(dao, db, c))

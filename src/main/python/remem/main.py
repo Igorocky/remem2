@@ -16,7 +16,7 @@ def exit_remem() -> None:
 
 
 def show_help(cmds: CollectionOfCommands, c: Console) -> None:
-    c.print_info("List of available commands:")
+    c.info("List of available commands:")
     for name, descr in cmds.list_commands():
         if descr == '':
             print(name)
@@ -45,15 +45,15 @@ def main() -> None:
                 print()
                 cmds[0].func()
             elif len(cmds) == 0:
-                c.print_error(f'No matches found for "{inp}"')
+                c.error(f'No matches found for "{inp}"')
             else:
-                c.print_prompt(f'Multiple commands match "{inp}". Please select one:')
+                c.prompt(f'Multiple commands match "{inp}". Please select one:')
                 idx = select_single_option([c.name for c in cmds])
                 if idx is not None:
                     print()
                     cmds[idx].func()
         except Exception as ex:
-            c.print_error(str(ex))
+            c.error(str(ex))
             if app_settings.print_stack_traces_for_exceptions:
                 print(traceback.format_exc())
 

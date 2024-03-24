@@ -44,33 +44,33 @@ class Console:
     def __init__(self, app_settings: AppSettings) -> None:
         self._app_settings = app_settings
 
-    def error(self, text: str) -> str:
+    def mark_error(self, text: str) -> str:
         return add_color(self._app_settings.console_colors_error, text)
 
-    def success(self, text: str) -> str:
+    def mark_success(self, text: str) -> str:
         return add_color(self._app_settings.console_colors_success, text)
 
-    def info(self, text: str) -> str:
+    def mark_info(self, text: str) -> str:
         return add_color(self._app_settings.console_colors_info, text)
 
-    def hint(self, text: str) -> str:
+    def mark_hint(self, text: str) -> str:
         return add_color(self._app_settings.console_colors_hint, text)
 
-    def prompt(self, text: str) -> str:
+    def mark_prompt(self, text: str) -> str:
         return add_color(self._app_settings.console_colors_prompt, text)
 
     def input(self, prompt: str) -> str:
-        print(self.prompt(prompt), end='')
+        print(self.mark_prompt(prompt), end='')
         return input()
 
-    def print_error(self, text: str) -> None:
-        print(self.error(text))
+    def error(self, text: str) -> None:
+        print(self.mark_error(text))
 
-    def print_success(self, text: str) -> None:
-        print(self.success(text))
+    def success(self, text: str) -> None:
+        print(self.mark_success(text))
 
-    def print_prompt(self, text: str) -> None:
-        print(self.prompt(text))
+    def prompt(self, text: str) -> None:
+        print(self.mark_prompt(text))
 
-    def print_info(self, text: str) -> None:
-        print(self.info(text))
+    def info(self, text: str) -> None:
+        print(self.mark_info(text))
