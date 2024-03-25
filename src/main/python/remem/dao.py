@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import ttk
 from ctypes import windll
 from dataclasses import dataclass, field
+from tkinter import ttk
 from typing import Tuple
+from uuid import uuid4
 
 from remem.commands import CollectionOfCommands
 from remem.console import Console
@@ -25,6 +26,8 @@ class Dao:
     cur_path: list[Folder] = field(default_factory=lambda: [])
     lang_is: dict[int, str] = field(default_factory=lambda: {})
     lang_si: dict[str, int] = field(default_factory=lambda: {})
+    card_types_is: dict[int, str] = field(default_factory=lambda: {})
+    card_types_si: dict[str, int] = field(default_factory=lambda: {})
 
 
 def make_new_folder(dao: Dao, db: Database, c: Console) -> None:
@@ -89,11 +92,25 @@ def delete_folder_by_id(dao: Dao, db: Database, c: Console) -> None:
             show_current_folder(dao, c)
 
 
-def save_card_translate(card: CardTranslate, db: Database) -> Tuple[bool, str]:
-    return (True, '')
+def insert_card_translate(folderId: int, card: CardTranslate, db: Database, dao: Dao) -> Tuple[bool, str]:
+    try:
+        with db.transaction() as tr:
+            tr.execute('insert into CARD(ext_id, fld_id, typ) values (:ext_id, :fld_id, :typ)',
+                       {'ext_id': uuid4(), 'fld_id': folderId, 'typ': dao.card_types_si['translate']})
+            card_id = tr.execute('SELECT last_insert_rowid()').fetchone()[0]
+            tr.execute("""
+                insert into CARD_TRAN(id, lang1, text1, tran1, lang2, text2, tran2) 
+                values (:id, :lang1, :text1, :tran1, :lang2, :text2, :tran2)
+            """,
+                       {'id':card_id,
+                        'lang1':dao.lang_si[card.lang1], 'text1':card.text1, 'tran1':card.tran1,
+                        'lang2':dao.lang_si[card.lang2], 'text2':card.text2, 'tran2':card.tran2,})
+        return (True, '')
+    except Exception as ex:
+        return (False, str(ex))
 
 
-def save_card_fill(card: CardFillGaps, db: Database) -> Tuple[bool, str]:
+def insert_card_fill(card: CardFillGaps, db: Database) -> Tuple[bool, str]:
     return (True, '')
 
 
@@ -107,8 +124,8 @@ def add_card(dao: Dao, db: Database, c: Console) -> None:
     root_frame.grid()
     render_card_add_view(
         parent=root_frame, langs=list(dao.lang_si),
-        on_card_tr_save=lambda card: save_card_translate(card, db),
-        on_card_fill_save=lambda card: save_card_fill(card, db),
+        on_card_tr_save=lambda card: insert_card_translate(folderId=5, card=card, db=db, dao=dao),
+        on_card_fill_save=lambda card: insert_card_fill(card, db),
     ).grid()
     root.mainloop()
 
@@ -120,6 +137,11 @@ def add_dao_commands(commands: CollectionOfCommands, db: Database, c: Console) -
         name = r[1]
         dao.lang_si[name] = id
         dao.lang_is[id] = name
+    for r in db.con.execute("select id, code from CARD_TYP"):
+        type_id = r[0]
+        type_code = r[1]
+        dao.card_types_si[type_code] = type_id
+        dao.card_types_is[type_id] = type_code
     commands.add_command('make new folder', lambda: make_new_folder(dao, db, c))
     commands.add_command('show current folder', lambda: show_current_folder(dao, c))
     commands.add_command('list all folders', lambda: list_all_folders(db))

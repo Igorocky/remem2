@@ -2,8 +2,6 @@ import sys
 
 sys.path.append('src/main/python')
 
-import traceback
-
 from remem.appsettings import load_app_settings
 from remem.commands import CollectionOfCommands
 from remem.console import Console, select_single_option
@@ -30,7 +28,7 @@ def main() -> None:
         settings_path = sys.argv[1].strip()
     app_settings = load_app_settings(settings_path)
     c = Console(app_settings=app_settings)
-    database = Database(file_path=app_settings.database_file)
+    database = Database(file_path=app_settings.database_file, c=c)
     commands = CollectionOfCommands()
     commands.add_command('exit remem', lambda: exit(0))
     commands.add_command('show help', lambda: show_help(commands, c))
@@ -54,8 +52,7 @@ def main() -> None:
                     cmds[idx].func()
         except Exception as ex:
             c.error(str(ex))
-            if app_settings.print_stack_traces_for_exceptions:
-                print(traceback.format_exc())
+            c.print_last_exception_info(ex)
 
 
 if __name__ == '__main__':

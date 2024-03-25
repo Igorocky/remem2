@@ -1,3 +1,4 @@
+import traceback
 from typing import Optional, Tuple
 
 from remem.appsettings import AppSettings
@@ -74,3 +75,8 @@ class Console:
 
     def info(self, text: str) -> None:
         print(self.mark_info(text))
+
+    def print_last_exception_info(self, ex: Exception) -> None:
+        if self._app_settings.print_stack_traces_for_exceptions:
+            self.error(str(ex))
+            print(traceback.format_exc())
