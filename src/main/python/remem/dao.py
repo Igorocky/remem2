@@ -7,7 +7,7 @@ from typing import Tuple
 from remem.commands import CollectionOfCommands
 from remem.console import Console
 from remem.database import Database
-from remem.dtos import CardTranslate
+from remem.dtos import CardTranslate, CardFillGaps
 from remem.ui import render_card_add_view
 
 windll.shcore.SetProcessDpiAwareness(1)
@@ -93,6 +93,10 @@ def save_card_translate(card: CardTranslate, db: Database) -> Tuple[bool, str]:
     return (True, '')
 
 
+def save_card_fill(card: CardFillGaps, db: Database) -> Tuple[bool, str]:
+    return (True, '')
+
+
 def add_card(dao: Dao, db: Database, c: Console) -> None:
     # if len(dao.cur_path) == 0:
     #     c.error('Cannot create a note in the root folder.')
@@ -100,10 +104,12 @@ def add_card(dao: Dao, db: Database, c: Console) -> None:
     root = tk.Tk()
     root.title('Add card')
     root_frame = ttk.Frame(root)
-    root_frame.grid(row=0, column=0)
-    tabs = render_card_add_view(
-        parent=root_frame, langs=list(dao.lang_si), on_card_tr_save=lambda card: save_card_translate(card, db))
-    tabs.grid(row=0, column=0)
+    root_frame.grid()
+    render_card_add_view(
+        parent=root_frame, langs=list(dao.lang_si),
+        on_card_tr_save=lambda card: save_card_translate(card, db),
+        on_card_fill_save=lambda card: save_card_fill(card, db),
+    ).grid()
     root.mainloop()
 
 
