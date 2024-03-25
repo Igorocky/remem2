@@ -1,8 +1,16 @@
+import tkinter as tk
+from tkinter import ttk
+from ctypes import windll
 from dataclasses import dataclass, field
+from typing import Tuple
 
 from remem.commands import CollectionOfCommands
 from remem.console import Console
 from remem.database import Database
+from remem.dtos import CardTranslate
+from remem.ui import render_card_add_view
+
+windll.shcore.SetProcessDpiAwareness(1)
 
 
 @dataclass
@@ -15,6 +23,8 @@ class Folder:
 @dataclass
 class Dao:
     cur_path: list[Folder] = field(default_factory=lambda: [])
+    lang_is: dict[int, str] = field(default_factory=lambda: {})
+    lang_si: dict[str, int] = field(default_factory=lambda: {})
 
 
 def make_new_folder(dao: Dao, db: Database, c: Console) -> None:
@@ -63,6 +73,7 @@ def go_to_folder_by_id(dao: Dao, db: Database, c: Console) -> None:
             select * from folders
         """, {'folder_id': int(inp)})
         dao.cur_path = [Folder(id=f[0], name=f[1], parent_id=f[2]) for f in new_path_iter]
+        dao.cur_path.reverse()
     show_current_folder(dao, c)
 
 
@@ -78,10 +89,34 @@ def delete_folder_by_id(dao: Dao, db: Database, c: Console) -> None:
             show_current_folder(dao, c)
 
 
+def save_card_translate(card: CardTranslate, db: Database) -> Tuple[bool, str]:
+    return (True, '')
+
+
+def add_card(dao: Dao, db: Database, c: Console) -> None:
+    # if len(dao.cur_path) == 0:
+    #     c.error('Cannot create a note in the root folder.')
+    #     return
+    root = tk.Tk()
+    root.title('Add card')
+    root_frame = ttk.Frame(root)
+    root_frame.grid(row=0, column=0)
+    tabs = render_card_add_view(
+        parent=root_frame, langs=list(dao.lang_si), on_card_tr_save=lambda card: save_card_translate(card, db))
+    tabs.grid(row=0, column=0)
+    root.mainloop()
+
+
 def add_dao_commands(commands: CollectionOfCommands, db: Database, c: Console) -> None:
     dao = Dao()
+    for r in db.con.execute("select id, name from LANG"):
+        id = r[0]
+        name = r[1]
+        dao.lang_si[name] = id
+        dao.lang_is[id] = name
     commands.add_command('make new folder', lambda: make_new_folder(dao, db, c))
     commands.add_command('show current folder', lambda: show_current_folder(dao, c))
     commands.add_command('list all folders', lambda: list_all_folders(db))
     commands.add_command('go to folder by id', lambda: go_to_folder_by_id(dao, db, c))
     commands.add_command('delete folder by id', lambda: delete_folder_by_id(dao, db, c))
+    commands.add_command('add card', lambda: add_card(dao, db, c))

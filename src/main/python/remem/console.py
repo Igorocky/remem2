@@ -1,7 +1,6 @@
 from typing import Optional, Tuple
 
 from remem.appsettings import AppSettings
-from remem.commands import split_by_space, arr_str_matches_pat, make_cmd_pat
 
 
 def add_color(color_rgb: Tuple[int, int, int], text: str) -> str:
@@ -19,18 +18,19 @@ def select_single_option(options: list[str]) -> Optional[int]:
         print_options()
         try:
             inp = input()
-            if len(inp) == 0:
-                continue
-            if inp[0].isdigit():
-                idx = int(inp)
-            else:
-                pat = make_cmd_pat(inp)
-                options_as_arr = [split_by_space(o) for o in options]
-                matched_idxs = [i for i,o in enumerate(options_as_arr) if arr_str_matches_pat(o,pat)]
-                if len(matched_idxs) != 1:
-                    continue
-                idx = matched_idxs[0]+1
+            # if len(inp) == 0:
+            #     continue
+            # if inp[0].isdigit():
+            #     idx = int(inp)
+            # else:
+            #     pat = make_cmd_pat(inp)
+            #     options_as_arr = [split_by_space(o) for o in options]
+            #     matched_idxs = [i for i,o in enumerate(options_as_arr) if arr_str_matches_pat(o,pat)]
+            #     if len(matched_idxs) != 1:
+            #         continue
+            #     idx = matched_idxs[0]+1
 
+            idx = int(inp)
             if 0 <= idx <= len(options):
                 if idx == 0:
                     return None

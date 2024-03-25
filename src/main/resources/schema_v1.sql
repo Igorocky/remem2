@@ -93,8 +93,10 @@ create table CARD_TRAN
     id integer not null references CARD(id) on delete cascade on update cascade,
     lang1 integer not null references LANG(id) on delete restrict on update cascade ,
     text1 text not null ,
+    tran1 text not null ,
     lang2 integer not null references LANG(id) on delete restrict on update cascade ,
-    text2 text not null
+    text2 text not null ,
+    tran2 text not null
 ) strict ;
 
 create table CARD_TRAN_CHG
@@ -103,18 +105,20 @@ create table CARD_TRAN_CHG
     id integer not null,
     lang1 integer not null references LANG(id) on delete restrict on update cascade ,
     text1 text not null ,
+    tran1 text not null ,
     lang2 integer not null references LANG(id) on delete restrict on update cascade ,
-    text2 text not null
+    text2 text not null,
+    tran2 text not null
 ) strict ;
 
 create trigger insert_CARD_TRAN_CHG AFTER INSERT ON CARD_TRAN FOR EACH ROW BEGIN
-    insert into CARD_TRAN_CHG(id, lang1, text1, lang2, text2)
-    VALUES (new.id, new.lang1, new.text1, new.lang2, new.text2);
+    insert into CARD_TRAN_CHG(id, lang1, text1, tran1, lang2, text2, tran2)
+    VALUES (new.id, new.lang1, new.text1, new.tran1, new.lang2, new.text2, new.tran2);
 end;
 
 create trigger update_CARD_TRAN_CHG AFTER UPDATE ON CARD_TRAN FOR EACH ROW BEGIN
-    insert into CARD_TRAN_CHG(id, lang1, text1, lang2, text2)
-    VALUES (new.id, new.lang1, new.text1, new.lang2, new.text2);
+    insert into CARD_TRAN_CHG(id, lang1, text1, tran1, lang2, text2, tran2)
+    VALUES (new.id, new.lang1, new.text1, new.tran1, new.lang2, new.text2, new.tran2);
 end;
 
 create table CARD_FILL
