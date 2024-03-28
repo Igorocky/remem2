@@ -99,7 +99,7 @@ def render_card_translate_edit_view(
 ) -> tk.Widget:
     def do_save() -> None:
         card = CardTranslate(lang1=lang1.get(), text1=text1.get(), tran1=tran1.get(),
-                             lang2=lang1.get(), text2=text1.get(), tran2=tran1.get())
+                             lang2=lang2.get(), text2=text2.get(), tran2=tran2.get())
         saved, msg = on_save(card)
         if saved and not is_edit:
             text1.set('')

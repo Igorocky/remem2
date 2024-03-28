@@ -33,9 +33,6 @@ class Database:
 
     def __init__(self, file_path: str, c: Console) -> None:
         self._c = c
-        db_file = Path(file_path)
-        if not db_file.parent.exists():
-            db_file.parent.mkdir(parents=True)
         self.con = sqlite3.connect(file_path,
                                    autocommit=True)  # type: ignore[call-arg]
         self.con.execute('pragma foreign_keys = ON')
