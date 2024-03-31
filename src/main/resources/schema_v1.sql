@@ -8,14 +8,13 @@ create table LANGUAGE
 (
     id   integer primary key,
     ext_id text not null unique ,
-    name text not null unique,
-    read_only integer not null check ( read_only in (0,1) )
+    name text not null unique
 ) strict;
 
-insert into LANGUAGE(ext_id, name, read_only) VALUES ('629723fb-bf93-45bc-a785-a6184b7a10a3', 'ENG', 0);
-insert into LANGUAGE(ext_id, name, read_only) VALUES ('86129ca5-8cf1-4dcf-b152-1ffbbccf193e', 'POL', 0);
-insert into LANGUAGE(ext_id, name, read_only) VALUES ('458995d9-0f65-4447-90ff-d03326a4ef67', 'UKR', 1);
-insert into LANGUAGE(ext_id, name, read_only) VALUES ('4e54d364-eee7-4a4d-96bd-2684cd3b1060', 'RUS', 1);
+insert into LANGUAGE(ext_id, name) VALUES ('629723fb-bf93-45bc-a785-a6184b7a10a3', 'ENG');
+insert into LANGUAGE(ext_id, name) VALUES ('86129ca5-8cf1-4dcf-b152-1ffbbccf193e', 'POL');
+insert into LANGUAGE(ext_id, name) VALUES ('458995d9-0f65-4447-90ff-d03326a4ef67', 'UKR');
+insert into LANGUAGE(ext_id, name) VALUES ('4e54d364-eee7-4a4d-96bd-2684cd3b1060', 'RUS');
 
 create table FOLDER
 (
@@ -99,9 +98,11 @@ create table CARD_TRAN
     lang1_id integer not null references LANGUAGE on delete restrict on update cascade ,
     text1 text not null ,
     tran1 text not null ,
+    read_only1 integer not null check ( read_only1 in (0,1) ),
     lang2_id integer not null references LANGUAGE on delete restrict on update cascade ,
     text2 text not null ,
-    tran2 text not null
+    tran2 text not null,
+    read_only2 integer not null check ( read_only2 in (0,1) )
 ) strict ;
 
 create table CARD_TRAN_CHG
@@ -111,14 +112,16 @@ create table CARD_TRAN_CHG
     lang1_id integer not null references LANGUAGE on delete restrict on update cascade ,
     text1 text not null ,
     tran1 text not null ,
+    read_only1 integer not null check ( read_only1 in (0,1) ),
     lang2_id integer not null references LANGUAGE on delete restrict on update cascade ,
     text2 text not null,
-    tran2 text not null
+    tran2 text not null,
+    read_only2 integer not null check ( read_only2 in (0,1) )
 ) strict ;
 
 create trigger insert_CARD_TRAN AFTER INSERT ON CARD_TRAN FOR EACH ROW BEGIN
-    insert into CARD_TRAN_CHG(id, lang1_id, text1, tran1, lang2_id, text2, tran2)
-    VALUES (new.id, new.lang1_id, new.text1, new.tran1, new.lang2_id, new.text2, new.tran2);
+    insert into CARD_TRAN_CHG(id, lang1_id, text1, tran1, read_only1, lang2_id, text2, tran2, read_only2)
+    VALUES (new.id, new.lang1_id, new.text1, new.tran1, new.read_only1, new.lang2_id, new.text2, new.tran2, new.read_only2);
 end;
 
 create trigger update_CARD_TRAN AFTER UPDATE ON CARD_TRAN FOR EACH ROW BEGIN

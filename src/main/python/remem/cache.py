@@ -107,3 +107,23 @@ class Cache:
     @card_tran_lang2_id.setter
     def card_tran_lang2_id(self, lang_id: int) -> None:
         self._set(Cache._sn_card_tran_lang2_id, str(lang_id))
+
+    _sn_card_tran_read_only1 = 'card_tran_read_only1'
+
+    @property
+    def card_tran_read_only1(self) -> bool:
+        return self._get_int(Cache._sn_card_tran_read_only1) == 1
+
+    @card_tran_read_only1.setter
+    def card_tran_read_only1(self, read_only: bool) -> None:
+        self._set(Cache._sn_card_tran_read_only1, '1' if read_only else '0')
+
+    _sn_card_tran_read_only2 = 'card_tran_read_only2'
+
+    @property
+    def card_tran_read_only2(self) -> bool:
+        return self._get_int(Cache._sn_card_tran_read_only2) == 1
+
+    @card_tran_read_only2.setter
+    def card_tran_read_only2(self, read_only: bool) -> None:
+        self._set(Cache._sn_card_tran_read_only2, '1' if read_only else '0')

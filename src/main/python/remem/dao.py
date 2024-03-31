@@ -105,12 +105,20 @@ def insert_card_translate(db: Database, cache: Cache, card: CardTranslate) -> Tr
             card_id = insert_card(con=tr, card=card)
             card.id = card_id
             tr.execute("""
-                insert into CARD_TRAN(id, lang1_id, text1, tran1, lang2_id, text2, tran2)
-                values (:id, :lang1_id, :text1, :tran1, :lang2_id, :text2, :tran2)
+                insert into CARD_TRAN(id, lang1_id, read_only1, text1, tran1, lang2_id, read_only2, text2, tran2)
+                values (:id, :lang1_id, :read_only1, :text1, :tran1, :lang2_id, :read_only2, :text2, :tran2)
             """,
                        {'id': card_id,
-                        'lang1_id': card.lang1_id, 'text1': card.text1, 'tran1': card.tran1,
-                        'lang2_id': card.lang2_id, 'text2': card.text2, 'tran2': card.tran2, })
+                        'lang1_id': card.lang1_id,
+                        'read_only1': 1 if card.read_only1 else 0,
+                        'text1': card.text1, 'tran1': card.tran1,
+                        'lang2_id': card.lang2_id,
+                        'read_only2': 1 if card.read_only2 else 0,
+                        'text2': card.text2, 'tran2': card.tran2, })
+            cache.card_tran_lang1_id = card.lang1_id
+            cache.card_tran_lang2_id = card.lang2_id
+            cache.card_tran_read_only1 = card.read_only1
+            cache.card_tran_read_only2 = card.read_only2
 
     return try_(do)
 
@@ -131,6 +139,10 @@ def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
         parent=root_frame, langs=list(cache.lang_si),
         on_card_tr_save=lambda card: insert_card_translate(db=db, cache=cache, card=card),
         on_card_fill_save=lambda card: insert_card_fill(db=db, cache=cache, card=card),
+        lang1_str=cache.lang_is[cache.card_tran_lang1_id],
+        lang2_str=cache.lang_is[cache.card_tran_lang2_id],
+        readonly1=cache.card_tran_read_only1,
+        readonly2=cache.card_tran_read_only2,
     ).grid()
     root.mainloop()
 

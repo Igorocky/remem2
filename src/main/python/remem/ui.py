@@ -1,7 +1,7 @@
 import tkinter as tk
 from ctypes import windll
 from dataclasses import dataclass, field
-from tkinter import ttk, StringVar, messagebox
+from tkinter import ttk, StringVar, messagebox, BooleanVar
 from typing import Callable, Tuple
 
 from remem.common import Try
@@ -50,6 +50,12 @@ class Button(Widget):
     cmd: Callable[[], None] | None = None
 
 
+@dataclass
+class Checkbutton(Widget):
+    text: str = ''
+    var: tk.BooleanVar | None = None
+
+
 def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tuple[int, int] = (5, 5)) -> tk.Widget:
     frame = ttk.Frame(parent)
     for row, elems in enumerate(children):
@@ -72,6 +78,11 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
                 widget = ttk.Button(frame, text=child.text)  # type: ignore[assignment]
                 if child.cmd is not None:
                     widget.configure(command=child.cmd)  # type: ignore[call-overload]
+            elif isinstance(child, Checkbutton):
+                widget = ttk.Checkbutton(frame, text=child.text, offvalue=False,
+                                         onvalue=True)  # type: ignore[assignment]
+                if child.var is not None:
+                    widget.configure(variable=child.var)  # type: ignore[call-overload]
             else:
                 raise Exception(f'Unexpected type of widget: {child}')
             widget.grid(row=row, column=col)
@@ -86,9 +97,13 @@ def render_add_card_view(
         parent: tk.Widget, langs: list[str],
         on_card_tr_save: Callable[[CardTranslate], Try[None]],
         on_card_fill_save: Callable[[CardFillGaps], Try[None]],
+        lang1_str: str, lang2_str: str, readonly1: bool, readonly2: bool,
 ) -> tk.Widget:
     nb = ttk.Notebook(parent)
-    card_translate_view = render_card_translate_edit_view(nb, langs, False, on_card_tr_save)
+    card_translate_view = render_card_translate_edit_view(
+        parent=nb, langs=langs, is_edit=False, on_save=on_card_tr_save,
+        lang1_str=lang1_str, lang2_str=lang2_str, readonly1=readonly1, readonly2=readonly2
+    )
     card_fill_view = render_card_fill_edit_view(nb, False, on_card_fill_save)
     nb.add(card_translate_view, text='Translate')
     nb.add(card_fill_view, text='Fill in gaps')
@@ -96,11 +111,21 @@ def render_add_card_view(
 
 
 def render_card_translate_edit_view(
-        parent: tk.Widget, langs: list[str], is_edit: bool, on_save: Callable[[CardTranslate], Try[None]]
+        parent: tk.Widget, langs: list[str], is_edit: bool, on_save: Callable[[CardTranslate], Try[None]],
+        lang1_str: str, lang2_str: str, readonly1: bool, readonly2: bool,
 ) -> tk.Widget:
+    lang1 = StringVar(value=lang1_str)
+    readonly1_var = BooleanVar(value=readonly1)
+    text1 = StringVar()
+    tran1 = StringVar()
+    lang2 = StringVar(value=lang2_str)
+    readonly2_var = BooleanVar(value=readonly2)
+    text2 = StringVar()
+    tran2 = StringVar()
+
     def do_save() -> None:
-        card = CardTranslate(lang1_str=lang1.get(), text1=text1.get(), tran1=tran1.get(),
-                             lang2_str=lang2.get(), text2=text2.get(), tran2=tran2.get())
+        card = CardTranslate(lang1_str=lang1.get(), read_only1=readonly1_var.get(), text1=text1.get(), tran1=tran1.get(),
+                             lang2_str=lang2.get(), read_only2=readonly2_var.get(), text2=text2.get(), tran2=tran2.get())
         result = on_save(card)
         if result.is_success() and not is_edit:
             text1.set('')
@@ -110,18 +135,32 @@ def render_card_translate_edit_view(
         if result.is_failure():
             messagebox.showerror(message=str(result.ex))
 
-    lang1 = StringVar()
-    text1 = StringVar()
-    tran1 = StringVar()
-    lang2 = StringVar()
-    text2 = StringVar()
-    tran2 = StringVar()
+    lang_width = max([len(lang) for lang in langs]) + 2
     return render_grid(parent, [
-        [Label(text='Language', sticky=tk.W), Label(text='Text', sticky=tk.W),
-         Label(text='Transcription', sticky=tk.W)],
-        [Combobox(values=langs, width=6, var=lang1), Entry(width=50, var=text1), Entry(width=20, var=tran1)],
-        [Combobox(values=langs, width=6, var=lang2), Entry(width=50, var=text2), Entry(width=20, var=tran2)],
-        [Empty(), Empty(), Button(text='Save' if is_edit else 'Add', sticky=tk.E, cmd=do_save)],
+        [
+            Label(text='Language', sticky=tk.W),
+            Empty(),
+            Label(text='Text', sticky=tk.W),
+            Label(text='Transcription', sticky=tk.W),
+        ],
+        [
+            Combobox(values=langs, width=lang_width, var=lang1),
+            Checkbutton(text='read only', var=readonly1_var),
+            Entry(width=50, var=text1),
+            Entry(width=20, var=tran1),
+        ],
+        [
+            Combobox(values=langs, width=lang_width, var=lang2),
+            Checkbutton(text='read only', var=readonly2_var),
+            Entry(width=50, var=text2),
+            Entry(width=20, var=tran2),
+        ],
+        [
+            Empty(),
+            Empty(),
+            Empty(),
+            Button(text='Save' if is_edit else 'Add', sticky=tk.E, cmd=do_save)
+        ],
     ])
 
 
