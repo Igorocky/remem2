@@ -1,3 +1,9 @@
+create table CACHE
+(
+    key   text primary key,
+    value text not null
+) strict;
+
 create table LANGUAGE
 (
     id   integer primary key,

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from tkinter import ttk, StringVar, messagebox
 from typing import Callable, Tuple
 
+from remem.common import Try
 from remem.dtos import CardTranslate, CardFillGaps
 
 windll.shcore.SetProcessDpiAwareness(1)
@@ -81,10 +82,10 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
     return frame
 
 
-def render_card_add_view(
+def render_add_card_view(
         parent: tk.Widget, langs: list[str],
-        on_card_tr_save: Callable[[CardTranslate], Tuple[bool, str]],
-        on_card_fill_save: Callable[[CardFillGaps], Tuple[bool, str]],
+        on_card_tr_save: Callable[[CardTranslate], Try[None]],
+        on_card_fill_save: Callable[[CardFillGaps], Try[None]],
 ) -> tk.Widget:
     nb = ttk.Notebook(parent)
     card_translate_view = render_card_translate_edit_view(nb, langs, False, on_card_tr_save)
@@ -95,19 +96,19 @@ def render_card_add_view(
 
 
 def render_card_translate_edit_view(
-        parent: tk.Widget, langs: list[str], is_edit: bool, on_save: Callable[[CardTranslate], Tuple[bool, str]]
+        parent: tk.Widget, langs: list[str], is_edit: bool, on_save: Callable[[CardTranslate], Try[None]]
 ) -> tk.Widget:
     def do_save() -> None:
-        card = CardTranslate(lang1=lang1.get(), text1=text1.get(), tran1=tran1.get(),
-                             lang2=lang2.get(), text2=text2.get(), tran2=tran2.get())
-        saved, msg = on_save(card)
-        if saved and not is_edit:
+        card = CardTranslate(lang1_str=lang1.get(), text1=text1.get(), tran1=tran1.get(),
+                             lang2_str=lang2.get(), text2=text2.get(), tran2=tran2.get())
+        result = on_save(card)
+        if result.is_success() and not is_edit:
             text1.set('')
             tran1.set('')
             text2.set('')
             tran2.set('')
-        if not saved:
-            messagebox.showerror(message=msg)
+        if result.is_failure():
+            messagebox.showerror(message=str(result.ex))
 
     lang1 = StringVar()
     text1 = StringVar()
@@ -125,7 +126,7 @@ def render_card_translate_edit_view(
 
 
 def render_card_fill_edit_view(
-        parent: tk.Widget, is_edit: bool, on_save: Callable[[CardFillGaps], Tuple[bool, str]]
+        parent: tk.Widget, is_edit: bool, on_save: Callable[[CardFillGaps], Try[None]]
 ) -> tk.Widget:
     return render_grid(parent, [
         [Label(text='Text', sticky=tk.NE), Text(width=100, height=10)],
