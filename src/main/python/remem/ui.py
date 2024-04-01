@@ -195,8 +195,9 @@ def render_query(
     name = StringVar(value=query.name)
     text: list[tk.Text] = []
 
-    def create_text(holder: list[tk.Text], paren: tk.Widget, width: int, height: int) -> tk.Widget:
+    def create_text(holder: list[tk.Text], paren: tk.Widget, width: int, height: int, value: str) -> tk.Widget:
         holder.append(tk.Text(paren, width=width, height=height))
+        holder[0].insert('end', value)
         return holder[0]
 
     def do_save() -> None:
@@ -216,7 +217,7 @@ def render_query(
         ],
         [
             Label(text='Query text', sticky=tk.E),
-            Custom(widget=lambda p: create_text(text, p, width=100, height=10)),
+            Custom(widget=lambda p: create_text(text, p, width=100, height=10, value=query.text)),
         ],
         [
             Empty(),

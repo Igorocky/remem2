@@ -8,7 +8,7 @@ from uuid import uuid4
 from remem.cache import Cache
 from remem.commands import CollectionOfCommands
 from remem.common import Try, try_
-from remem.console import Console
+from remem.console import Console, select_single_option
 from remem.database import Database
 from remem.dtos import CardTranslate, CardFillGaps, Card, Query
 from remem.ui import render_add_card_view, render_card_translate, render_query
@@ -178,7 +178,7 @@ def description_to_col_idxs(cur: Cursor) -> dict[str, int]:
     return {col[0]: i for i, col in enumerate(cur.description)}
 
 
-def open_edit_card_dialog(title: str, render_form: Callable[[tk.Widget, Callable[[], None]], tk.Widget]) -> None:
+def open_dialog(title: str, render_form: Callable[[tk.Widget, Callable[[], None]], tk.Widget]) -> None:
     root = tk.Tk()
 
     def close_dialog() -> None:
@@ -217,7 +217,7 @@ def edit_translate_card(db: Database, cache: Cache, card_id: int) -> None:
             close_dialog()
         return res
 
-    open_edit_card_dialog(
+    open_dialog(
         title='Edit Translate Card',
         render_form=lambda parent, close_dialog: render_card_translate(
             parent, langs=list(cache.lang_si),
@@ -245,10 +245,15 @@ def cmd_edit_card_by_id(c: Console, db: Database, cache: Cache) -> None:
         raise Exception(f'Unexpected type of card {card_type_id}.')
 
 
+def get_all_queries(db: Database) -> list[Query]:
+    return [Query(id=r[0], name=r[1], text=r[2])
+            for r in db.con.execute('select id, name, text from QUERY order by name')]
+
+
 def cmd_list_all_queries(c: Console, db: Database) -> None:
     c.info(f'List of all queries:')
-    for r in db.con.execute('select name from QUERY order by name'):
-        print(r[0])
+    for q in get_all_queries(db):
+        print(q.name)
 
 
 def insert_query(con: Connection, query: Query) -> None:
@@ -278,6 +283,41 @@ def cmd_add_query(db: Database) -> None:
     root.mainloop()
 
 
+def update_query(db: Database, query: Query) -> Try[None]:
+    def do() -> None:
+        db.con.execute("""
+            update QUERY set name = :name, text = :text
+            where id = :id
+        """, {'id': query.id, 'name': query.name, 'text': query.text, })
+
+    return try_(do)
+
+
+def cmd_edit_query(c: Console, db: Database) -> None:
+    all_queries = get_all_queries(db)
+    print(c.mark_prompt('Select a query to edit:'))
+    idx = select_single_option([q.name for q in all_queries])
+    if idx is None:
+        return
+    query_to_edit = all_queries[idx]
+
+    def on_save(query: Query, close_dialog: Callable[[], None]) -> Try[None]:
+        res = update_query(db, query)
+        if res.is_success():
+            close_dialog()
+        return res
+
+    open_dialog(
+        title='Edit Query',
+        render_form=lambda parent, close_dialog: render_query(
+            parent,
+            query=query_to_edit,
+            is_edit=True,
+            on_save=lambda q: on_save(q, close_dialog),
+        )
+    )
+
+
 def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -> None:
     cache = Cache(db)
     commands.add_command('make new folder', lambda: cmd_make_new_folder(c, db, cache))
@@ -289,3 +329,4 @@ def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -
     commands.add_command('add card', lambda: cmd_add_card(c, db, cache))
     commands.add_command('add query', lambda: cmd_add_query(db))
     commands.add_command('edit card', lambda: cmd_edit_card_by_id(c, db, cache))
+    commands.add_command('edit query', lambda: cmd_edit_query(c, db))
