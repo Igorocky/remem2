@@ -32,7 +32,7 @@ def main() -> None:
     commands = CollectionOfCommands()
     commands.add_command('exit remem', lambda: exit(0))
     commands.add_command('show help', lambda: show_help(commands, c))
-    add_dao_commands(commands, database, c)
+    add_dao_commands(c, database, commands)
 
     while True:
         try:

@@ -23,6 +23,29 @@ create table FOLDER
     name text not null
 ) strict;
 
+create table QUERY
+(
+    id integer primary key ,
+    name text not null unique ,
+    text text not null
+) strict ;
+
+create table QUERY_CHG
+(
+    time integer not null default (unixepoch()),
+    id integer not null ,
+    name text not null,
+    text text not null
+) strict ;
+
+create trigger query_insert after insert on QUERY FOR EACH ROW BEGIN
+    insert into QUERY_CHG (id, name, text) values (new.id, new.name, new.text);
+end;
+
+create trigger query_update after update on QUERY FOR EACH ROW BEGIN
+    insert into QUERY_CHG (id, name, text) values (new.id, new.name, new.text);
+end;
+
 create table CARD_TYPE
 (
     id   integer primary key,
@@ -38,7 +61,7 @@ insert into CARD_TYPE(id, code, table_name) VALUES (3, 'synopsis', 'CARD_SYN');
 create table TASK_TYPE
 (
     id integer primary key ,
-    card_type_id integer not null references CARD_TYPE on delete restrict on update cascade ,
+    card_type_id integer not null references CARD_TYPE on delete restrict on update restrict ,
     code text not null unique
 ) strict ;
 
@@ -51,8 +74,8 @@ create table CARD
 (
     id   integer primary key,
     ext_id text not null unique ,
-    folder_id integer not null references FOLDER on delete restrict on update cascade ,
-    card_type_id integer not null references CARD_TYPE on delete restrict on update cascade ,
+    folder_id integer not null references FOLDER on delete restrict on update restrict ,
+    card_type_id integer not null references CARD_TYPE on delete restrict on update restrict ,
     crt_time integer not null default (unixepoch())
 ) strict;
 
@@ -74,8 +97,8 @@ END;
 create table TASK
 (
     id integer primary key ,
-    card_id integer not null references CARD on delete cascade on update cascade ,
-    task_type_id integer not null references TASK_TYPE on delete restrict on update cascade,
+    card_id integer not null references CARD on delete cascade on update restrict ,
+    task_type_id integer not null references TASK_TYPE on delete restrict on update restrict ,
     unique (card_id, task_type_id)
 ) strict ;
 
@@ -87,19 +110,19 @@ END;
 create table TASK_HIST
 (
     time integer not null default (unixepoch()),
-    task_id integer not null references TASK on delete cascade on update cascade ,
+    task_id integer not null references TASK on delete cascade on update restrict ,
     mark real not null check ( 0 <= mark and mark <= 1 ),
     note text
 ) strict ;
 
 create table CARD_TRAN
 (
-    id integer not null references CARD on delete cascade on update cascade,
-    lang1_id integer not null references LANGUAGE on delete restrict on update cascade ,
+    id integer not null references CARD on delete cascade on update restrict ,
+    lang1_id integer not null references LANGUAGE on delete restrict on update restrict ,
     read_only1 integer not null check ( read_only1 in (0,1) ),
     text1 text not null ,
     tran1 text not null ,
-    lang2_id integer not null references LANGUAGE on delete restrict on update cascade ,
+    lang2_id integer not null references LANGUAGE on delete restrict on update restrict ,
     read_only2 integer not null check ( read_only2 in (0,1) ),
     text2 text not null ,
     tran2 text not null
@@ -109,11 +132,11 @@ create table CARD_TRAN_CHG
 (
     time integer not null default (unixepoch()),
     id integer not null,
-    lang1_id integer not null references LANGUAGE on delete restrict on update cascade ,
+    lang1_id integer not null references LANGUAGE on delete restrict on update restrict ,
     text1 text not null ,
     tran1 text not null ,
     read_only1 integer not null check ( read_only1 in (0,1) ),
-    lang2_id integer not null references LANGUAGE on delete restrict on update cascade ,
+    lang2_id integer not null references LANGUAGE on delete restrict on update restrict ,
     text2 text not null,
     tran2 text not null,
     read_only2 integer not null check ( read_only2 in (0,1) )
@@ -131,26 +154,29 @@ end;
 
 create table CARD_FILL
 (
-    id integer not null references CARD on delete cascade on update cascade,
+    id integer not null references CARD on delete cascade on update restrict ,
+    lang_id integer not null references LANGUAGE on delete restrict on update restrict ,
     text text not null,
     notes text not null
 ) strict ;
 
 create table CARD_FILL_CHG
 (
+    time integer not null default (unixepoch()),
     id integer not null,
+    lang_id integer not null references LANGUAGE on delete restrict on update restrict ,
     text text not null,
     notes text not null
 ) strict ;
 
 create trigger insert_CARD_FILL AFTER INSERT ON CARD_FILL FOR EACH ROW BEGIN
-    insert into CARD_FILL_CHG(id, text, notes)
-    VALUES (new.id, new.text, new.notes);
+    insert into CARD_FILL_CHG(id, lang_id, text, notes)
+    VALUES (new.id, new.lang_id, new.text, new.notes);
 end;
 
 create trigger update_CARD_FILL AFTER UPDATE ON CARD_FILL FOR EACH ROW BEGIN
-    insert into CARD_FILL_CHG(id, text, notes)
-    VALUES (new.id, new.text, new.notes);
+    insert into CARD_FILL_CHG(id, lang_id, text, notes)
+    VALUES (new.id, new.lang_id, new.text, new.notes);
 end;
 
 create table CARD_SYN
@@ -161,6 +187,7 @@ create table CARD_SYN
 
 create table CARD_SYN_CHG
 (
+    time integer not null default (unixepoch()),
     id integer not null,
     cont text not null
 ) strict ;

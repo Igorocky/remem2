@@ -10,8 +10,8 @@ from remem.commands import CollectionOfCommands
 from remem.common import Try, try_
 from remem.console import Console
 from remem.database import Database
-from remem.dtos import CardTranslate, CardFillGaps, Card
-from remem.ui import render_add_card_view, render_card_translate_edit_view
+from remem.dtos import CardTranslate, CardFillGaps, Card, Query
+from remem.ui import render_add_card_view, render_card_translate, render_query
 
 windll.shcore.SetProcessDpiAwareness(1)
 
@@ -161,17 +161,20 @@ def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
     root_frame.grid()
     render_add_card_view(
         parent=root_frame, langs=list(cache.lang_si),
+        card_translate=CardTranslate(
+            lang1_str=cache.lang_is[cache.card_tran_lang1_id],
+            lang2_str=cache.lang_is[cache.card_tran_lang2_id],
+            readonly1=cache.card_tran_read_only1,
+            readonly2=cache.card_tran_read_only2,
+        ),
         on_card_tr_save=lambda card: insert_card_translate(db=db, cache=cache, card=card),
+        card_fill_gaps=CardFillGaps(),
         on_card_fill_save=lambda card: insert_card_fill(db=db, cache=cache, card=card),
-        init_lang1_str=cache.lang_is[cache.card_tran_lang1_id],
-        init_lang2_str=cache.lang_is[cache.card_tran_lang2_id],
-        init_readonly1=cache.card_tran_read_only1,
-        init_readonly2=cache.card_tran_read_only2,
     ).grid()
     root.mainloop()
 
 
-def description_to_map(cur: Cursor) -> dict[str, int]:
+def description_to_col_idxs(cur: Cursor) -> dict[str, int]:
     return {col[0]: i for i, col in enumerate(cur.description)}
 
 
@@ -194,7 +197,7 @@ def edit_translate_card(db: Database, cache: Cache, card_id: int) -> None:
         from CARD_TRAN 
         where id = :card_id
     """, {'card_id': card_id})
-    col_idxs = description_to_map(cursor)
+    col_idxs = description_to_col_idxs(cursor)
     row = cursor.fetchone()
     card = CardTranslate(
         id=card_id,
@@ -216,11 +219,11 @@ def edit_translate_card(db: Database, cache: Cache, card_id: int) -> None:
 
     open_edit_card_dialog(
         title='Edit Translate Card',
-        render_form=lambda parent, close_dialog: render_card_translate_edit_view(
+        render_form=lambda parent, close_dialog: render_card_translate(
             parent, langs=list(cache.lang_si),
-            init_card=card,
+            card=card,
+            is_edit=True,
             on_save=lambda card1: on_save(card1, close_dialog),
-            init_lang1_str='', init_lang2_str='', init_readonly1=False, init_readonly2=False,
         )
     )
 
@@ -242,12 +245,47 @@ def cmd_edit_card_by_id(c: Console, db: Database, cache: Cache) -> None:
         raise Exception(f'Unexpected type of card {card_type_id}.')
 
 
-def add_dao_commands(commands: CollectionOfCommands, db: Database, c: Console) -> None:
+def cmd_list_all_queries(c: Console, db: Database) -> None:
+    c.info(f'List of all queries:')
+    for r in db.con.execute('select name from QUERY order by name'):
+        print(r[0])
+
+
+def insert_query(con: Connection, query: Query) -> None:
+    con.execute(
+        'insert into QUERY(name, text) values (:name, :text)',
+        {'name': query.name, 'text': query.text}
+    )
+
+
+def cmd_add_query(db: Database) -> None:
+    def save_query(query: Query) -> Try[None]:
+        def do() -> None:
+            insert_query(db.con, query)
+
+        return try_(do)
+
+    root = tk.Tk()
+    root.title('Add a new query')
+    root_frame = ttk.Frame(root)
+    root_frame.grid()
+    render_query(
+        parent=root_frame,
+        query=Query(),
+        is_edit=False,
+        on_save=save_query,
+    ).grid()
+    root.mainloop()
+
+
+def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -> None:
     cache = Cache(db)
     commands.add_command('make new folder', lambda: cmd_make_new_folder(c, db, cache))
     commands.add_command('show current folder', lambda: cmd_show_current_folder(c, cache))
     commands.add_command('list all folders', lambda: cmd_list_all_folders(db))
+    commands.add_command('list all queries', lambda: cmd_list_all_queries(c, db))
     commands.add_command('go to folder by id', lambda: cmd_go_to_folder_by_id(c, cache))
     commands.add_command('delete folder by id', lambda: cmd_delete_folder_by_id(c, db, cache))
     commands.add_command('add card', lambda: cmd_add_card(c, db, cache))
+    commands.add_command('add query', lambda: cmd_add_query(db))
     commands.add_command('edit card', lambda: cmd_edit_card_by_id(c, db, cache))

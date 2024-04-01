@@ -2,6 +2,13 @@ from dataclasses import dataclass
 
 
 @dataclass
+class Query:
+    id: int = -1
+    name: str = ''
+    text: str = ''
+
+
+@dataclass
 class Card:
     id: int = -1
     ext_id: str = ''
@@ -26,5 +33,7 @@ class CardTranslate(Card):
 
 @dataclass
 class CardFillGaps(Card):
+    lang_id: int = -1
+    lang_str: str = ''
     text: str = ''
     notes: str = ''
