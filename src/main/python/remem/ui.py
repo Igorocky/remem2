@@ -97,12 +97,13 @@ def render_add_card_view(
         parent: tk.Widget, langs: list[str],
         on_card_tr_save: Callable[[CardTranslate], Try[None]],
         on_card_fill_save: Callable[[CardFillGaps], Try[None]],
-        lang1_str: str, lang2_str: str, readonly1: bool, readonly2: bool,
+        init_lang1_str: str, init_lang2_str: str, init_readonly1: bool, init_readonly2: bool,
 ) -> tk.Widget:
     nb = ttk.Notebook(parent)
     card_translate_view = render_card_translate_edit_view(
-        parent=nb, langs=langs, is_edit=False, on_save=on_card_tr_save,
-        lang1_str=lang1_str, lang2_str=lang2_str, readonly1=readonly1, readonly2=readonly2
+        parent=nb, langs=langs, init_card=None, on_save=on_card_tr_save,
+        init_lang1_str=init_lang1_str, init_lang2_str=init_lang2_str,
+        init_readonly1=init_readonly1, init_readonly2=init_readonly2
     )
     card_fill_view = render_card_fill_edit_view(nb, False, on_card_fill_save)
     nb.add(card_translate_view, text='Translate')
@@ -111,21 +112,32 @@ def render_add_card_view(
 
 
 def render_card_translate_edit_view(
-        parent: tk.Widget, langs: list[str], is_edit: bool, on_save: Callable[[CardTranslate], Try[None]],
-        lang1_str: str, lang2_str: str, readonly1: bool, readonly2: bool,
+        parent: tk.Widget, langs: list[str],
+        init_card: CardTranslate | None,
+        on_save: Callable[[CardTranslate], Try[None]],
+        init_lang1_str: str, init_lang2_str: str, init_readonly1: bool, init_readonly2: bool,
 ) -> tk.Widget:
-    lang1 = StringVar(value=lang1_str)
-    readonly1_var = BooleanVar(value=readonly1)
-    text1 = StringVar()
-    tran1 = StringVar()
-    lang2 = StringVar(value=lang2_str)
-    readonly2_var = BooleanVar(value=readonly2)
-    text2 = StringVar()
-    tran2 = StringVar()
+    is_edit = init_card is not None
+
+    lang1_str = StringVar(value=init_card.lang1_str if is_edit else init_lang1_str)  # type: ignore[union-attr]
+    readonly1 = BooleanVar(value=init_card.readonly1 if is_edit else init_readonly1)  # type: ignore[union-attr]
+    text1 = StringVar(value=init_card.text1 if is_edit else '')  # type: ignore[union-attr]
+    tran1 = StringVar(value=init_card.tran1 if is_edit else '')  # type: ignore[union-attr]
+    lang2_str = StringVar(value=init_card.lang2_str if is_edit else init_lang2_str)  # type: ignore[union-attr]
+    readonly2 = BooleanVar(value=init_card.readonly2 if is_edit else init_readonly2)  # type: ignore[union-attr]
+    text2 = StringVar(value=init_card.text2 if is_edit else '')  # type: ignore[union-attr]
+    tran2 = StringVar(value=init_card.tran2 if is_edit else '')  # type: ignore[union-attr]
 
     def do_save() -> None:
-        card = CardTranslate(lang1_str=lang1.get(), read_only1=readonly1_var.get(), text1=text1.get(), tran1=tran1.get(),
-                             lang2_str=lang2.get(), read_only2=readonly2_var.get(), text2=text2.get(), tran2=tran2.get())
+        card = init_card if init_card is not None else CardTranslate()
+        card.lang1_str = lang1_str.get()
+        card.readonly1 = readonly1.get()
+        card.text1 = text1.get()
+        card.tran1 = tran1.get()
+        card.lang2_str = lang2_str.get()
+        card.readonly2 = readonly2.get()
+        card.text2 = text2.get()
+        card.tran2 = tran2.get()
         result = on_save(card)
         if result.is_success() and not is_edit:
             text1.set('')
@@ -144,14 +156,14 @@ def render_card_translate_edit_view(
             Label(text='Transcription', sticky=tk.W),
         ],
         [
-            Combobox(values=langs, width=lang_width, var=lang1),
-            Checkbutton(text='read only', var=readonly1_var),
+            Combobox(values=langs, width=lang_width, var=lang1_str),
+            Checkbutton(text='read only', var=readonly1),
             Entry(width=50, var=text1),
             Entry(width=20, var=tran1),
         ],
         [
-            Combobox(values=langs, width=lang_width, var=lang2),
-            Checkbutton(text='read only', var=readonly2_var),
+            Combobox(values=langs, width=lang_width, var=lang2_str),
+            Checkbutton(text='read only', var=readonly2),
             Entry(width=50, var=text2),
             Entry(width=20, var=tran2),
         ],

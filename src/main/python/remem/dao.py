@@ -1,7 +1,8 @@
 import tkinter as tk
 from ctypes import windll
-from sqlite3 import Connection
+from sqlite3 import Connection, Cursor
 from tkinter import ttk
+from typing import Callable
 from uuid import uuid4
 
 from remem.cache import Cache
@@ -10,7 +11,7 @@ from remem.common import Try, try_
 from remem.console import Console
 from remem.database import Database
 from remem.dtos import CardTranslate, CardFillGaps, Card
-from remem.ui import render_add_card_view
+from remem.ui import render_add_card_view, render_card_translate_edit_view
 
 windll.shcore.SetProcessDpiAwareness(1)
 
@@ -60,7 +61,7 @@ def cmd_list_all_folders(db: Database) -> None:
         print(f'{"    " * level}{name}:{folder_id}')
 
 
-def cmd_go_to_folder_by_id(c: Console, db: Database, cache: Cache) -> None:
+def cmd_go_to_folder_by_id(c: Console, cache: Cache) -> None:
     inp = c.input("id of the folder to go to: ").strip()
     cache.set_curr_folder(None if inp == '' else int(inp))
     cmd_show_current_folder(c, cache)
@@ -96,11 +97,15 @@ def set_generic_card_fields(cache: Cache, card: Card) -> Card:
     return card
 
 
+def set_fields_for_translate_card(cache: Cache, card: CardTranslate) -> None:
+    card.lang1_id = cache.lang_si[card.lang1_str]
+    card.lang2_id = cache.lang_si[card.lang2_str]
+
+
 def insert_card_translate(db: Database, cache: Cache, card: CardTranslate) -> Try[None]:
     def do() -> None:
         set_generic_card_fields(cache, card)
-        card.lang1_id = cache.lang_si[card.lang1_str]
-        card.lang2_id = cache.lang_si[card.lang2_str]
+        set_fields_for_translate_card(cache, card)
         with db.transaction() as tr:
             card_id = insert_card(con=tr, card=card)
             card.id = card_id
@@ -110,20 +115,39 @@ def insert_card_translate(db: Database, cache: Cache, card: CardTranslate) -> Tr
             """,
                        {'id': card_id,
                         'lang1_id': card.lang1_id,
-                        'read_only1': 1 if card.read_only1 else 0,
+                        'read_only1': 1 if card.readonly1 else 0,
                         'text1': card.text1, 'tran1': card.tran1,
                         'lang2_id': card.lang2_id,
-                        'read_only2': 1 if card.read_only2 else 0,
+                        'read_only2': 1 if card.readonly2 else 0,
                         'text2': card.text2, 'tran2': card.tran2, })
             cache.card_tran_lang1_id = card.lang1_id
             cache.card_tran_lang2_id = card.lang2_id
-            cache.card_tran_read_only1 = card.read_only1
-            cache.card_tran_read_only2 = card.read_only2
+            cache.card_tran_read_only1 = card.readonly1
+            cache.card_tran_read_only2 = card.readonly2
+
+    return try_(do)
+
+
+def update_card_translate(db: Database, cache: Cache, card: CardTranslate) -> Try[None]:
+    def do() -> None:
+        set_generic_card_fields(cache, card)
+        set_fields_for_translate_card(cache, card)
+        db.con.execute("""
+            update CARD_TRAN set lang1_id = :lang1_id, read_only1 = :read_only1, text1 = :text1, tran1 = :tran1, 
+            lang2_id = :lang2_id, read_only2 = :read_only2, text2 = :text2, tran2 = :tran2
+            where id = :card_id
+        """, {'card_id': card.id, 'lang1_id': card.lang1_id, 'read_only1': 1 if card.readonly1 else 0,
+              'text1': card.text1, 'tran1': card.tran1, 'lang2_id': card.lang2_id,
+              'read_only2': 1 if card.readonly2 else 0, 'text2': card.text2, 'tran2': card.tran2, })
 
     return try_(do)
 
 
 def insert_card_fill(db: Database, cache: Cache, card: CardFillGaps) -> Try[None]:
+    return try_(lambda: None)
+
+
+def update_card_fill(db: Database, cache: Cache, card: CardFillGaps) -> Try[None]:
     return try_(lambda: None)
 
 
@@ -139,12 +163,83 @@ def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
         parent=root_frame, langs=list(cache.lang_si),
         on_card_tr_save=lambda card: insert_card_translate(db=db, cache=cache, card=card),
         on_card_fill_save=lambda card: insert_card_fill(db=db, cache=cache, card=card),
-        lang1_str=cache.lang_is[cache.card_tran_lang1_id],
-        lang2_str=cache.lang_is[cache.card_tran_lang2_id],
-        readonly1=cache.card_tran_read_only1,
-        readonly2=cache.card_tran_read_only2,
+        init_lang1_str=cache.lang_is[cache.card_tran_lang1_id],
+        init_lang2_str=cache.lang_is[cache.card_tran_lang2_id],
+        init_readonly1=cache.card_tran_read_only1,
+        init_readonly2=cache.card_tran_read_only2,
     ).grid()
     root.mainloop()
+
+
+def description_to_map(cur: Cursor) -> dict[str, int]:
+    return {col[0]: i for i, col in enumerate(cur.description)}
+
+
+def open_edit_card_dialog(title: str, render_form: Callable[[tk.Widget, Callable[[], None]], tk.Widget]) -> None:
+    root = tk.Tk()
+
+    def close_dialog() -> None:
+        root.destroy()
+
+    root.title(title)
+    root_frame = ttk.Frame(root)
+    root_frame.grid()
+    render_form(root_frame, close_dialog).grid()
+    root.mainloop()
+
+
+def edit_translate_card(db: Database, cache: Cache, card_id: int) -> None:
+    cursor = db.con.execute("""
+        select lang1_id, read_only1, text1, tran1, lang2_id, read_only2, text2, tran2
+        from CARD_TRAN 
+        where id = :card_id
+    """, {'card_id': card_id})
+    col_idxs = description_to_map(cursor)
+    row = cursor.fetchone()
+    card = CardTranslate(
+        id=card_id,
+        lang1_str=cache.lang_is[row[col_idxs['lang1_id']]],
+        lang2_str=cache.lang_is[row[col_idxs['lang2_id']]],
+        readonly1=row[col_idxs['read_only1']] != 0,
+        readonly2=row[col_idxs['read_only2']] != 0,
+        text1=row[col_idxs['text1']],
+        text2=row[col_idxs['text2']],
+        tran1=row[col_idxs['tran1']],
+        tran2=row[col_idxs['tran2']],
+    )
+
+    def on_save(card1: CardTranslate, close_dialog: Callable[[], None]) -> Try[None]:
+        res = update_card_translate(db, cache, card1)
+        if res.is_success():
+            close_dialog()
+        return res
+
+    open_edit_card_dialog(
+        title='Edit Translate Card',
+        render_form=lambda parent, close_dialog: render_card_translate_edit_view(
+            parent, langs=list(cache.lang_si),
+            init_card=card,
+            on_save=lambda card1: on_save(card1, close_dialog),
+            init_lang1_str='', init_lang2_str='', init_readonly1=False, init_readonly2=False,
+        )
+    )
+
+
+def edit_fill_card(c: Console, db: Database, cache: Cache, card_id: int) -> None:
+    pass
+
+
+def cmd_edit_card_by_id(c: Console, db: Database, cache: Cache) -> None:
+    card_id = int(c.input('Enter id of the card to edit: '))
+    card_type_id = db.con.execute("""
+        select card_type_id from CARD where id = :card_id
+    """, {'card_id': card_id}).fetchone()[0]
+    if card_type_id == cache.card_types_si['translate']:
+        edit_translate_card(db, cache, card_id)
+    elif card_type_id == cache.card_types_si['fill_gaps']:
+        edit_fill_card(c, db, cache, card_id)
+    else:
+        raise Exception(f'Unexpected type of card {card_type_id}.')
 
 
 def add_dao_commands(commands: CollectionOfCommands, db: Database, c: Console) -> None:
@@ -152,6 +247,7 @@ def add_dao_commands(commands: CollectionOfCommands, db: Database, c: Console) -
     commands.add_command('make new folder', lambda: cmd_make_new_folder(c, db, cache))
     commands.add_command('show current folder', lambda: cmd_show_current_folder(c, cache))
     commands.add_command('list all folders', lambda: cmd_list_all_folders(db))
-    commands.add_command('go to folder by id', lambda: cmd_go_to_folder_by_id(c, db, cache))
+    commands.add_command('go to folder by id', lambda: cmd_go_to_folder_by_id(c, cache))
     commands.add_command('delete folder by id', lambda: cmd_delete_folder_by_id(c, db, cache))
     commands.add_command('add card', lambda: cmd_add_card(c, db, cache))
+    commands.add_command('edit card', lambda: cmd_edit_card_by_id(c, db, cache))
