@@ -1,3 +1,4 @@
+import re
 import tkinter as tk
 from ctypes import windll
 from sqlite3 import Connection, Cursor
@@ -330,6 +331,35 @@ def cmd_delete_query(c: Console, db: Database) -> None:
     c.info('The query has been deleted.')
 
 
+def cmd_run_query(c: Console, db: Database) -> None:
+    all_queries = get_all_queries(db)
+    print(c.mark_prompt('Select a query to run:'))
+    idx = select_single_option([q.name for q in all_queries])
+    if idx is None:
+        return
+    query = all_queries[idx]
+    param_names = [m.group(1) for m in re.finditer(r':([a-z0-9_]+)', query.text)]
+    if len(param_names) > 0:
+        print(c.mark_prompt('Enter parameter values:'))
+    params = {}
+    for param_name in param_names:
+        params[param_name] = c.input(f'{param_name}: ')
+    cur = db.con.execute(all_queries[idx].text, params)
+    col_names: list[str] = [c[0] for c in cur.description]
+    col_width = [len(c) for c in col_names]
+    result = [[str(c) for c in r] for r in cur]
+    for r in result:
+        for i, v in enumerate(r):
+            col_width[i] = max(col_width[i], len(v))
+    header = ' '.join([h.ljust(col_width[i]) for i, h in enumerate(col_names)])
+    print('-' * len(header))
+    print(header)
+    print('-' * len(header))
+    for row in result:
+        print(' '.join([c.ljust(col_width[i]) for i, c in enumerate(row)]))
+    print('-' * len(header))
+
+
 def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -> None:
     cache = Cache(db)
     commands.add_command('make new folder', lambda: cmd_make_new_folder(c, db, cache))
@@ -343,3 +373,4 @@ def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -
     commands.add_command('edit card', lambda: cmd_edit_card_by_id(c, db, cache))
     commands.add_command('edit query', lambda: cmd_edit_query(c, db))
     commands.add_command('delete query', lambda: cmd_delete_query(c, db))
+    commands.add_command('run query', lambda: cmd_run_query(c, db))
