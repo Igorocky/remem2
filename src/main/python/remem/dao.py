@@ -318,6 +318,18 @@ def cmd_edit_query(c: Console, db: Database) -> None:
     )
 
 
+def cmd_delete_query(c: Console, db: Database) -> None:
+    all_queries = get_all_queries(db)
+    print(c.mark_prompt('Select a query to delete:'))
+    idx = select_single_option([q.name for q in all_queries])
+    if idx is None:
+        return
+    query_to_delete = all_queries[idx]
+
+    db.con.execute('delete from QUERY where id = :id', {'id': query_to_delete.id})
+    c.info('The query has been deleted.')
+
+
 def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -> None:
     cache = Cache(db)
     commands.add_command('make new folder', lambda: cmd_make_new_folder(c, db, cache))
@@ -330,3 +342,4 @@ def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -
     commands.add_command('add query', lambda: cmd_add_query(db))
     commands.add_command('edit card', lambda: cmd_edit_card_by_id(c, db, cache))
     commands.add_command('edit query', lambda: cmd_edit_query(c, db))
+    commands.add_command('delete query', lambda: cmd_delete_query(c, db))
