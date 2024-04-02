@@ -9,6 +9,14 @@ class Query:
 
 
 @dataclass
+class Task:
+    id: int = -1
+    card_id: int = -1
+    task_type_id: int = -1
+    task_type_code: str = ''
+
+
+@dataclass
 class Card:
     id: int = -1
     ext_id: str = ''

@@ -33,6 +33,14 @@ class Cache:
             self.card_types_si[type_code] = type_id
             self.card_types_is[type_id] = type_code
 
+        self.task_types_si: dict[str, int] = {}
+        self.task_types_is: dict[int, str] = {}
+        for r in db.con.execute("select id, code from TASK_TYPE"):
+            task_type_id = r[0]
+            task_type_code = r[1]
+            self.task_types_si[task_type_code] = task_type_id
+            self.task_types_is[task_type_id] = task_type_code
+
         curr_folder_id = self._get_int(Cache._sn_curr_folder)
         self._cur_folder_path = [] if curr_folder_id is None else self._read_folder_path_from_db(curr_folder_id)
 
