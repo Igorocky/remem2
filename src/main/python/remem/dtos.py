@@ -35,12 +35,10 @@ class Card:
 @dataclass
 class CardTranslate(Card):
     lang1_id: int = -1
-    lang1_str: str = ''
     readonly1: bool = False
     text1: str = ''
     tran1: str = ''
     lang2_id: int = -1
-    lang2_str: str = ''
     readonly2: bool = False
     text2: str = ''
     tran2: str = ''
@@ -49,6 +47,5 @@ class CardTranslate(Card):
 @dataclass
 class CardFillGaps(Card):
     lang_id: int = -1
-    lang_str: str = ''
     text: str = ''
     notes: str = ''

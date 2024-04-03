@@ -1,7 +1,6 @@
-from dataclasses import dataclass
-
+from remem.dao import select_folder_path
 from remem.database import Database
-
+from remem.dtos import Folder
 
 
 class Cache:
@@ -36,21 +35,7 @@ class Cache:
             self.task_types_is[task_type_id] = task_type_code
 
         curr_folder_id = self._get_int(Cache._sn_curr_folder)
-        self._cur_folder_path = [] if curr_folder_id is None else self._read_folder_path_from_db(curr_folder_id)
-
-    def _read_folder_path_from_db(self, folder_id: int) -> list[Folder]:
-        path_iter = self._db.con.execute("""
-                with recursive folders(id, name, parent_id) as (
-                    select id, name, parent_id from FOLDER where id = :folder_id
-                    union all
-                    select pr.id, pr.name, pr.parent_id
-                    from folders ch inner join FOLDER pr on ch.parent_id = pr.id
-                )
-                select * from folders
-            """, {'folder_id': folder_id})
-        path = [Folder(id=f[0], name=f[1], parent_id=f[2]) for f in path_iter]
-        path.reverse()
-        return path
+        self._cur_folder_path = [] if curr_folder_id is None else select_folder_path(self._db.con, curr_folder_id)
 
     def _read_value_from_db(self, key: str) -> str | None:
         for r in self._db.con.execute('select value from CACHE where key = :key', {'key': key}):
@@ -86,46 +71,38 @@ class Cache:
 
     def set_curr_folder(self, folder_id: int | None) -> None:
         self._set_int(Cache._sn_curr_folder, folder_id)
-        self._cur_folder_path = [] if folder_id is None else self._read_folder_path_from_db(folder_id)
+        self._cur_folder_path = [] if folder_id is None else select_folder_path(self._db.con, folder_id)
 
     _sn_card_tran_lang1_id = 'card_tran_lang1_id'
 
-    @property
-    def card_tran_lang1_id(self) -> int:
+    def get_card_tran_lang1_id(self) -> int:
         lang_id = self._get_int(Cache._sn_card_tran_lang1_id)
         return list(self.lang_is)[0] if lang_id is None else lang_id
 
-    @card_tran_lang1_id.setter
-    def card_tran_lang1_id(self, lang_id: int) -> None:
+    def set_card_tran_lang1_id(self, lang_id: int) -> None:
         self._set(Cache._sn_card_tran_lang1_id, str(lang_id))
 
     _sn_card_tran_lang2_id = 'card_tran_lang2_id'
 
-    @property
-    def card_tran_lang2_id(self) -> int:
+    def get_card_tran_lang2_id(self) -> int:
         lang_id = self._get_int(Cache._sn_card_tran_lang2_id)
         return list(self.lang_is)[0] if lang_id is None else lang_id
 
-    @card_tran_lang2_id.setter
-    def card_tran_lang2_id(self, lang_id: int) -> None:
+    def set_card_tran_lang2_id(self, lang_id: int) -> None:
         self._set(Cache._sn_card_tran_lang2_id, str(lang_id))
 
     _sn_card_tran_read_only1 = 'card_tran_read_only1'
 
-    @property
-    def card_tran_read_only1(self) -> bool:
+    def get_card_tran_read_only1(self) -> bool:
         return self._get_int(Cache._sn_card_tran_read_only1) == 1
 
-    @card_tran_read_only1.setter
-    def card_tran_read_only1(self, read_only: bool) -> None:
+    def set_card_tran_read_only1(self, read_only: bool) -> None:
         self._set(Cache._sn_card_tran_read_only1, '1' if read_only else '0')
 
     _sn_card_tran_read_only2 = 'card_tran_read_only2'
 
-    @property
-    def card_tran_read_only2(self) -> bool:
+    def get_card_tran_read_only2(self) -> bool:
         return self._get_int(Cache._sn_card_tran_read_only2) == 1
 
-    @card_tran_read_only2.setter
-    def card_tran_read_only2(self, read_only: bool) -> None:
+    def set_card_tran_read_only2(self, read_only: bool) -> None:
         self._set(Cache._sn_card_tran_read_only2, '1' if read_only else '0')

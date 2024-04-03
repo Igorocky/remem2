@@ -11,17 +11,12 @@ from remem.commands import CollectionOfCommands
 from remem.common import Try, try_
 from remem.console import Console, select_single_option
 from remem.constants import CardTypes
+from remem.dao import insert_folder, select_folder, delete_folder, insert_card
 from remem.database import Database
-from remem.dtos import CardTranslate, CardFillGaps, Card, Query, Task
+from remem.dtos import CardTranslate, Card, Query, Task, Folder
 from remem.ui import render_add_card_view, render_card_translate, render_query
 
 windll.shcore.SetProcessDpiAwareness(1)
-
-
-
-
-
-
 
 
 def cmd_make_new_folder(c: Console, db: Database, cache: Cache) -> None:
@@ -30,8 +25,8 @@ def cmd_make_new_folder(c: Console, db: Database, cache: Cache) -> None:
         c.error('Folder name must not be empty')
         return
     curr_folder_path = cache.get_curr_folder_path()
-    insert_new_folder(db.con, parent_id=curr_folder_path[-1].id if len(curr_folder_path) > 0 else None, name=name)
-    new_folder_id = get_last_id(db.con)
+    new_folder_id = insert_folder(
+        db.con, Folder(parent_id=curr_folder_path[-1].id if len(curr_folder_path) > 0 else None, name=name))
     c.success('A folder created')
     c.info(f'{name}:{new_folder_id}')
 
@@ -52,10 +47,7 @@ def cmd_list_all_folders(db: Database) -> None:
         )
         select level, id, name from folders
     """):
-        level = r[0]
-        name = r[2]
-        folder_id = r[1]
-        print(f'{"    " * level}{name}:{folder_id}')
+        print(f'{"    " * r['level']}{r['name']}:{r['folder_id']}')
 
 
 def cmd_go_to_folder_by_id(c: Console, cache: Cache) -> None:
@@ -66,89 +58,62 @@ def cmd_go_to_folder_by_id(c: Console, cache: Cache) -> None:
 
 def cmd_delete_folder_by_id(c: Console, db: Database, cache: Cache) -> None:
     folder_id = int(c.input("id of the folder to delete: ").strip())
-    if db.con.execute('select count(1) from FOLDER where id = :folder_id', {'folder_id': folder_id}).fetchone()[0] == 0:
+    folder = select_folder(db.con, folder_id)
+    if folder is None:
         c.error(f'The folder with id of {folder_id} does not exist.')
     else:
-        db.con.execute('delete from FOLDER where id = :folder_id', {'folder_id': folder_id})
+        delete_folder(db.con, folder_id)
         c.success('The folder was deleted.')
-        curr_folder_path = cache.get_curr_folder_path()
-        if len(curr_folder_path) > 0 and curr_folder_path[-1].id == folder_id:
-            cache.set_curr_folder(None if len(curr_folder_path) == 1 else curr_folder_path[-2].id)
-            cmd_show_current_folder(c, cache)
+        if folder_id in {f.id for f in cache.get_curr_folder_path()}:
+            cache.set_curr_folder(None)
 
 
-def insert_card(con: Connection, card: Card) -> int:
-    con.execute(
-        'insert into CARD(ext_id, folder_id, card_type_id) values (:ext_id, :folder_id, :card_type_id)',
-        {'ext_id': card.ext_id, 'folder_id': card.folder_id, 'card_type_id': card.card_type_id}
-    )
-    return get_last_id(con)
+def prepare_card_for_update(cache: Cache, card: Card) -> None:
+    if isinstance(card, CardTranslate):
+        card.card_type_id = cache.card_types_si['translate']
+    else:
+        raise Exception(f'Unexpected card type: {card}')
 
 
-def set_generic_card_fields(cache: Cache, card: Card) -> Card:
+def prepare_card_for_insert(cache: Cache, card: Card) -> None:
     card.ext_id = str(uuid4())
     curr_folder_path = cache.get_curr_folder_path()
     if len(curr_folder_path) > 0:
         card.folder_id = curr_folder_path[-1].id
-    card.card_type_id = cache.card_types_si['translate']
-    return card
+    prepare_card_for_update(cache, card)
 
 
-def set_fields_for_translate_card(cache: Cache, card: CardTranslate) -> None:
-    card.lang1_id = cache.lang_si[card.lang1_str]
-    card.lang2_id = cache.lang_si[card.lang2_str]
+# def update_card_translate(db: Database, cache: Cache, card: CardTranslate) -> Try[None]:
+#     def do() -> None:
+#         set_generic_card_fields(cache, card)
+#         set_fields_for_translate_card(cache, card)
+#         db.con.execute("""
+#             update CARD_TRAN set lang1_id = :lang1_id, read_only1 = :read_only1, text1 = :text1, tran1 = :tran1,
+#             lang2_id = :lang2_id, read_only2 = :read_only2, text2 = :text2, tran2 = :tran2
+#             where id = :card_id
+#         """, {'card_id': card.id, 'lang1_id': card.lang1_id, 'read_only1': 1 if card.readonly1 else 0,
+#               'text1': card.text1, 'tran1': card.tran1, 'lang2_id': card.lang2_id,
+#               'read_only2': 1 if card.readonly2 else 0, 'text2': card.text2, 'tran2': card.tran2, })
+#
+#     return try_(do)
 
 
-def insert_card_translate(db: Database, cache: Cache, card: CardTranslate) -> Try[None]:
-    def do() -> None:
-        set_generic_card_fields(cache, card)
-        set_fields_for_translate_card(cache, card)
-        with db.transaction() as tr:
-            card_id = insert_card(con=tr, card=card)
-            card.id = card_id
-            tr.execute("""
-                insert into CARD_TRAN(id, lang1_id, read_only1, text1, tran1, lang2_id, read_only2, text2, tran2)
-                values (:id, :lang1_id, :read_only1, :text1, :tran1, :lang2_id, :read_only2, :text2, :tran2)
-            """,
-                       {'id': card_id,
-                        'lang1_id': card.lang1_id,
-                        'read_only1': 1 if card.readonly1 else 0,
-                        'text1': card.text1, 'tran1': card.tran1,
-                        'lang2_id': card.lang2_id,
-                        'read_only2': 1 if card.readonly2 else 0,
-                        'text2': card.text2, 'tran2': card.tran2, })
-            cache.card_tran_lang1_id = card.lang1_id
-            cache.card_tran_lang2_id = card.lang2_id
-            cache.card_tran_read_only1 = card.readonly1
-            cache.card_tran_read_only2 = card.readonly2
-
-    return try_(do)
-
-
-def update_card_translate(db: Database, cache: Cache, card: CardTranslate) -> Try[None]:
-    def do() -> None:
-        set_generic_card_fields(cache, card)
-        set_fields_for_translate_card(cache, card)
-        db.con.execute("""
-            update CARD_TRAN set lang1_id = :lang1_id, read_only1 = :read_only1, text1 = :text1, tran1 = :tran1, 
-            lang2_id = :lang2_id, read_only2 = :read_only2, text2 = :text2, tran2 = :tran2
-            where id = :card_id
-        """, {'card_id': card.id, 'lang1_id': card.lang1_id, 'read_only1': 1 if card.readonly1 else 0,
-              'text1': card.text1, 'tran1': card.tran1, 'lang2_id': card.lang2_id,
-              'read_only2': 1 if card.readonly2 else 0, 'text2': card.text2, 'tran2': card.tran2, })
-
-    return try_(do)
-
-
-def insert_card_fill(db: Database, cache: Cache, card: CardFillGaps) -> Try[None]:
-    return try_(lambda: None)
-
-
-def update_card_fill(db: Database, cache: Cache, card: CardFillGaps) -> Try[None]:
-    return try_(lambda: None)
+#
+# def update_card_fill(db: Database, cache: Cache, card: CardFillGaps) -> Try[None]:
+#     return try_(lambda: None)
 
 
 def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
+    def do_insert_card(card: Card) -> None:
+        prepare_card_for_insert(cache, card)
+        if isinstance(card, CardTranslate):
+            cache.set_card_tran_lang1_id(card.lang1_id)
+            cache.set_card_tran_lang2_id(card.lang2_id)
+            cache.set_card_tran_read_only1(card.readonly1)
+            cache.set_card_tran_read_only2(card.readonly2)
+        with db.transaction() as tr:
+            insert_card(tr, card)
+
     if len(cache.get_curr_folder_path()) == 0:
         c.error('Cannot create a card in the root folder.')
         return
@@ -157,16 +122,9 @@ def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
     root_frame = ttk.Frame(root)
     root_frame.grid()
     render_add_card_view(
-        parent=root_frame, langs=list(cache.lang_si),
-        card_translate=CardTranslate(
-            lang1_str=cache.lang_is[cache.card_tran_lang1_id],
-            lang2_str=cache.lang_is[cache.card_tran_lang2_id],
-            readonly1=cache.card_tran_read_only1,
-            readonly2=cache.card_tran_read_only2,
-        ),
-        on_card_tr_save=lambda card: insert_card_translate(db=db, cache=cache, card=card),
-        card_fill_gaps=CardFillGaps(),
-        on_card_fill_save=lambda card: insert_card_fill(db=db, cache=cache, card=card),
+        cache,
+        parent=root_frame,
+        on_card_save=lambda card: try_(lambda crd: do_insert_card(crd)),
     ).grid()
     root.mainloop()
 

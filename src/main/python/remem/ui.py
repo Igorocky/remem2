@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from tkinter import ttk, StringVar, messagebox, BooleanVar
 from typing import Callable, Tuple
 
+from remem.cache import Cache
 from remem.common import Try
-from remem.dtos import CardTranslate, CardFillGaps, Query
+from remem.dtos import CardTranslate, CardFillGaps, Query, Card
 
 windll.shcore.SetProcessDpiAwareness(1)
 
@@ -101,43 +102,46 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
 
 
 def render_add_card_view(
-        parent: tk.Widget, langs: list[str],
-        card_translate: CardTranslate,
-        on_card_tr_save: Callable[[CardTranslate], Try[None]],
-        card_fill_gaps: CardFillGaps,
-        on_card_fill_save: Callable[[CardFillGaps], Try[None]],
+        cache: Cache,
+        parent: tk.Widget,
+        on_card_save: Callable[[Card], Try[None]],
 ) -> tk.Widget:
     nb = ttk.Notebook(parent)
-    card_translate_view = render_card_translate(
-        parent=nb, langs=langs, card=card_translate, is_edit=False, on_save=on_card_tr_save,
-    )
-    card_fill_view = render_card_fill(parent=nb, is_edit=False, on_save=on_card_fill_save)
-    nb.add(card_translate_view, text='Translate')
-    nb.add(card_fill_view, text='Fill in gaps')
+    nb.add(render_card_translate(cache, parent=nb, is_edit=False, on_save=on_card_save), text='Translate')
+    nb.add(render_card_fill(cache, parent=nb, is_edit=False, on_save=on_card_save), text='Fill in gaps')
     return nb
 
 
 def render_card_translate(
-        parent: tk.Widget, langs: list[str],
-        card: CardTranslate,
+        cache: Cache,
+        parent: tk.Widget,
         is_edit: bool,
         on_save: Callable[[CardTranslate], Try[None]],
+        card: CardTranslate | None = None,
 ) -> tk.Widget:
-    lang1_str = StringVar(value=card.lang1_str)
+    if card is None:
+        card = CardTranslate(
+            lang1_id=cache.card_tran_lang1_id,
+            lang2_id=cache.card_tran_lang2_id,
+            readonly1=cache.card_tran_read_only1,
+            readonly2=cache.card_tran_read_only2,
+        )
+
+    lang1_str = StringVar(value=cache.lang_is[card.lang1_id])
     readonly1 = BooleanVar(value=card.readonly1)
     text1 = StringVar(value=card.text1)
     tran1 = StringVar(value=card.tran1)
-    lang2_str = StringVar(value=card.lang2_str)
+    lang2_str = StringVar(value=cache.lang_is[card.lang2_id])
     readonly2 = BooleanVar(value=card.readonly2)
     text2 = StringVar(value=card.text2)
     tran2 = StringVar(value=card.tran2)
 
     def do_save() -> None:
-        card.lang1_str = lang1_str.get()
+        card.lang1_id = cache.lang_si[lang1_str.get()]
         card.readonly1 = readonly1.get()
         card.text1 = text1.get()
         card.tran1 = tran1.get()
-        card.lang2_str = lang2_str.get()
+        card.lang2_id = cache.lang_si[lang2_str.get()]
         card.readonly2 = readonly2.get()
         card.text2 = text2.get()
         card.tran2 = tran2.get()
@@ -150,6 +154,7 @@ def render_card_translate(
         if result.is_failure():
             messagebox.showerror(message=str(result.ex))
 
+    langs = list(cache.lang_si)
     lang_width = max([len(lang) for lang in langs]) + 2
     return render_grid(parent, [
         [
@@ -180,7 +185,11 @@ def render_card_translate(
 
 
 def render_card_fill(
-        parent: tk.Widget, is_edit: bool, on_save: Callable[[CardFillGaps], Try[None]]
+        cache: Cache,
+        parent: tk.Widget,
+        is_edit: bool,
+        on_save: Callable[[CardFillGaps], Try[None]],
+        card: CardFillGaps = CardFillGaps(),
 ) -> tk.Widget:
     return render_grid(parent, [
         [Label(text='Text', sticky=tk.NE), Text(width=100, height=10)],
