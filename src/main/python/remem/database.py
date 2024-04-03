@@ -35,6 +35,7 @@ class Database:
         self._c = c
         self.con = sqlite3.connect(file_path,
                                    autocommit=True)  # type: ignore[call-arg]
+        self.con.row_factory = sqlite3.Row
         self.con.execute('pragma foreign_keys = ON')
         (foreign_keys,) = self.con.execute('pragma foreign_keys').fetchone()
         if foreign_keys != 1:

@@ -2,6 +2,13 @@ from dataclasses import dataclass
 
 
 @dataclass
+class Folder:
+    id: int
+    parent_id: int | None
+    name: str
+
+
+@dataclass
 class Query:
     id: int = -1
     name: str = ''

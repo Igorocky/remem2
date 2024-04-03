@@ -3,12 +3,6 @@ from dataclasses import dataclass
 from remem.database import Database
 
 
-@dataclass
-class Folder:
-    id: int
-    parent_id: int | None
-    name: str
-
 
 class Cache:
     _sn_curr_folder = 'curr_folder'
