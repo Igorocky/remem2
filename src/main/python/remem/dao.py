@@ -2,11 +2,12 @@ from sqlite3 import Connection
 
 from remem.cache import Cache
 from remem.constants import CardTypes
-from remem.dtos import Card, Folder, CardTranslate
+from remem.dtos import Card, Folder, CardTranslate, Query
 
 
 def get_last_id(con: Connection) -> int:
-    return int(con.execute("""SELECT last_insert_rowid()""").fetchone()[0])
+    row = con.execute("""SELECT last_insert_rowid()""").fetchone()
+    return int(list(row.values())[0])
 
 
 def insert_folder(con: Connection, folder: Folder) -> int:
@@ -25,14 +26,14 @@ def select_folder(con: Connection, folder_id: int) -> Folder | None:
 def select_folder_path(con: Connection, folder_id: int) -> list[Folder]:
     cur = con.execute("""
             with recursive folders(id, name, parent_id) as (
-                select id, name, parent_id from FOLDER where id = :folder_id
+                select id, name, parent_id from FOLDER where id = ?
                 union all
                 select pr.id, pr.name, pr.parent_id
                 from folders ch inner join FOLDER pr on ch.parent_id = pr.id
             )
             select * from folders
-        """, {'folder_id': folder_id})
-    path = [Folder(id=f[0], name=f[1], parent_id=f[2]) for f in cur]
+        """, [folder_id])
+    path = [Folder(**row) for row in cur]
     path.reverse()
     return path
 
@@ -47,6 +48,28 @@ def update_folder(con: Connection, folder: Folder) -> None:
 
 def delete_folder(con: Connection, folder_id: int) -> None:
     con.execute("""delete from FOLDER where id = :id""", {'id': folder_id})
+
+
+def insert_query(con: Connection, query: Query) -> int:
+    con.execute("""insert into QUERY(name, text) values (:name, :text)""", query.__dict__)
+    return get_last_id(con)
+
+
+def select_query(con: Connection, query_id: int) -> Query | None:
+    row = con.execute("""select * from QUERY where id = ?""", [query_id]).fetchone()
+    return None if row is None else Query(**row)
+
+
+def select_all_queries(con: Connection) -> list[Query]:
+    return [Query(**row) for row in con.execute('select * from QUERY order by name')]
+
+
+def update_query(con: Connection, query: Query) -> None:
+    con.execute(""" update QUERY set name = :name, text = :text where id = :id """, query.__dict__)
+
+
+def delete_query(con: Connection, query_id: int) -> None:
+    con.execute("""delete from QUERY where id = ?""", [query_id])
 
 
 def insert_card(con: Connection, card: Card) -> int:

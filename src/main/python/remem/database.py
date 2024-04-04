@@ -1,6 +1,7 @@
 import sqlite3
 from pathlib import Path
 
+from remem.appsettings import AppSettings
 from remem.console import Console
 
 
@@ -28,17 +29,23 @@ class Transaction:
             self._con.autocommit = True
 
 
+def dict_factory(cursor, row):
+    fields = [column[0] for column in cursor.description]
+    return {key: value for key, value in zip(fields, row)}
+
+
 class Database:
     latest_db_version = 1
 
-    def __init__(self, file_path: str, c: Console) -> None:
+    def __init__(self, app_settings: AppSettings, c: Console) -> None:
         self._c = c
-        self.con = sqlite3.connect(file_path,
+        self._app_settings = app_settings
+        self.con = sqlite3.connect(app_settings.database_file,
                                    autocommit=True)  # type: ignore[call-arg]
-        self.con.row_factory = sqlite3.Row
+        self.con.row_factory = dict_factory
         self.con.execute('pragma foreign_keys = ON')
-        (foreign_keys,) = self.con.execute('pragma foreign_keys').fetchone()
-        if foreign_keys != 1:
+        foreign_keys = self.con.execute('pragma foreign_keys').fetchone()
+        if list(foreign_keys.values())[0] != 1:
             raise Exception('Could not set foreign_keys = ON.')
 
         (db_ver,) = self.con.execute('pragma user_version').fetchone()
@@ -47,15 +54,15 @@ class Database:
         elif db_ver != Database.latest_db_version:
             self._upgrade_database()
 
-        (db_ver,) = self.con.execute('pragma user_version').fetchone()
-        if db_ver != Database.latest_db_version:
+        db_ver = self.con.execute('pragma user_version').fetchone()
+        if list(db_ver.values())[0] != Database.latest_db_version:
             raise Exception('Could not init database.')
 
     def transaction(self) -> Transaction:
         return Transaction(self.con, self._c)
 
     def _init_database(self) -> None:
-        self.con.executescript(Path('src/main/resources/schema_v1.sql').read_text('utf-8'))
+        self.con.executescript(Path(self._app_settings.database_schema_script_path).read_text('utf-8'))
         self.con.execute('pragma user_version = 1')
 
     def _upgrade_database(self) -> None:

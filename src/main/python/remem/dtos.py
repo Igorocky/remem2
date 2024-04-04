@@ -1,5 +1,10 @@
 from dataclasses import dataclass
 
+@dataclass
+class Language:
+    id: int
+    ext_id: str
+    name: str
 
 @dataclass
 class Folder:

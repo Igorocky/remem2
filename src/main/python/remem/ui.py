@@ -46,6 +46,14 @@ class Text(Widget):
 
 
 @dataclass
+class Text2(Widget):
+    holder: list[tk.Text] = field(default_factory=lambda: [])
+    init_value: str = ''
+    width: int = 10
+    height: int = 5
+
+
+@dataclass
 class Custom(Widget):
     widget: Callable[[tk.Widget], tk.Widget] = lambda parent: ttk.Label(parent, text='')
 
@@ -80,6 +88,10 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
                     widget.configure(textvariable=child.var)
             elif isinstance(child, Text):
                 widget = tk.Text(frame, width=child.width, height=child.height)  # type: ignore[assignment]
+            elif isinstance(child, Text2):
+                widget = tk.Text(frame, width=child.width, height=child.height)
+                widget.insert('end', child.init_value)
+                child.holder.append(widget)
             elif isinstance(child, Custom):
                 widget = child.widget(frame)  # type: ignore[assignment]
             elif isinstance(child, Button):
@@ -99,6 +111,19 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
     for ch in frame.winfo_children():
         ch.grid_configure(padx=child_pad[0], pady=child_pad[1])
     return frame
+
+
+def open_dialog(title: str, render: Callable[[tk.Widget, Callable[[], None]], tk.Widget]) -> None:
+    root = tk.Tk()
+
+    def close_dialog() -> None:
+        root.destroy()
+
+    root.title(title)
+    root_frame = ttk.Frame(root)
+    root_frame.grid()
+    render(root_frame, close_dialog).grid()
+    root.mainloop()
 
 
 def render_add_card_view(
@@ -199,15 +224,14 @@ def render_card_fill(
 
 
 def render_query(
-        parent: tk.Widget, query: Query, is_edit: bool, on_save: Callable[[Query], Try[None]]
+        parent: tk.Widget,
+        is_edit: bool,
+        on_save: Callable[[Query], Try[None]],
+        query: Query | None = None
 ) -> tk.Widget:
+    query = Query() if query is None else query
     name = StringVar(value=query.name)
     text: list[tk.Text] = []
-
-    def create_text(holder: list[tk.Text], paren: tk.Widget, width: int, height: int, value: str) -> tk.Widget:
-        holder.append(tk.Text(paren, width=width, height=height))
-        holder[0].insert('end', value)
-        return holder[0]
 
     def do_save() -> None:
         query.name = name.get()
@@ -226,7 +250,7 @@ def render_query(
         ],
         [
             Label(text='Query text', sticky=tk.E),
-            Custom(widget=lambda p: create_text(text, p, width=100, height=10, value=query.text)),
+            Text2(width=100, height=10, init_value=query.text, holder=text),
         ],
         [
             Empty(),

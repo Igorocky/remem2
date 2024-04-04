@@ -10,7 +10,6 @@ def add_color(color_rgb: Tuple[int, int, int], text: str) -> str:
 
 def select_single_option(options: list[str]) -> Optional[int]:
     def print_options() -> None:
-        print()
         print('0. Cancel')
         for i, o in enumerate(options):
             print(f'{i + 1}. {o}')
@@ -38,6 +37,7 @@ def select_single_option(options: list[str]) -> Optional[int]:
                 else:
                     return idx - 1
         except ValueError:
+            print()
             pass
 
 

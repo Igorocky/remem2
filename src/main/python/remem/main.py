@@ -5,7 +5,7 @@ sys.path.append('src/main/python')
 from remem.appsettings import load_app_settings
 from remem.commands import CollectionOfCommands
 from remem.console import Console, select_single_option
-from remem.dao import add_dao_commands
+from remem.datacommands import add_dao_commands
 from remem.database import Database
 
 
@@ -28,7 +28,7 @@ def main() -> None:
         settings_path = sys.argv[1].strip()
     app_settings = load_app_settings(settings_path)
     c = Console(app_settings=app_settings)
-    database = Database(file_path=app_settings.database_file, c=c)
+    database = Database(app_settings=app_settings, c=c)
     commands = CollectionOfCommands()
     commands.add_command('exit remem', lambda: exit(0))
     commands.add_command('show help', lambda: show_help(commands, c))
