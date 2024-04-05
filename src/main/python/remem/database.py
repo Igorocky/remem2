@@ -2,6 +2,7 @@ import sqlite3
 from pathlib import Path
 
 from remem.appsettings import AppSettings
+from remem.common import values
 from remem.console import Console
 
 
@@ -44,8 +45,7 @@ class Database:
                                    autocommit=True)  # type: ignore[call-arg]
         self.con.row_factory = dict_factory
         self.con.execute('pragma foreign_keys = ON')
-        foreign_keys = self.con.execute('pragma foreign_keys').fetchone()
-        if list(foreign_keys.values())[0] != 1:
+        if values(self.con.execute('pragma foreign_keys').fetchone())[0] != 1:
             raise Exception('Could not set foreign_keys = ON.')
 
         (db_ver,) = self.con.execute('pragma user_version').fetchone()
@@ -54,8 +54,7 @@ class Database:
         elif db_ver != Database.latest_db_version:
             self._upgrade_database()
 
-        db_ver = self.con.execute('pragma user_version').fetchone()
-        if list(db_ver.values())[0] != Database.latest_db_version:
+        if values(self.con.execute('pragma user_version').fetchone())[0] != Database.latest_db_version:
             raise Exception('Could not init database.')
 
     def transaction(self) -> Transaction:

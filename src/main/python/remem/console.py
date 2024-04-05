@@ -1,3 +1,4 @@
+import re
 import traceback
 from typing import Optional, Tuple
 
@@ -9,33 +10,39 @@ def add_color(color_rgb: Tuple[int, int, int], text: str) -> str:
 
 
 def select_single_option(options: list[str]) -> Optional[int]:
+    filt: list[str] = []
+
+    def option_matches_filter(opt: str, flt: list[str]) -> bool:
+        return all([f.lower() in opt.lower() for f in flt])
+
     def print_options() -> None:
-        print('0. Cancel')
+        if len(filt) == 0:
+            print('0. Cancel')
         for i, o in enumerate(options):
-            print(f'{i + 1}. {o}')
+            if option_matches_filter(o, filt):
+                print(f'{i + 1}. {o}')
 
     while True:
         print_options()
         try:
             inp = input()
-            # if len(inp) == 0:
-            #     continue
-            # if inp[0].isdigit():
-            #     idx = int(inp)
-            # else:
-            #     pat = make_cmd_pat(inp)
-            #     options_as_arr = [split_by_space(o) for o in options]
-            #     matched_idxs = [i for i,o in enumerate(options_as_arr) if arr_str_matches_pat(o,pat)]
-            #     if len(matched_idxs) != 1:
-            #         continue
-            #     idx = matched_idxs[0]+1
-
-            idx = int(inp)
-            if 0 <= idx <= len(options):
-                if idx == 0:
-                    return None
+            if len(inp) == 0:
+                filtered_option_idxs = [i for i, o in enumerate(options) if option_matches_filter(o, filt)]
+                if len(filtered_option_idxs) == 1:
+                    return filtered_option_idxs[0]
                 else:
-                    return idx - 1
+                    filt = []
+            if re.match(r'\d+', inp):
+                filt = []
+                idx = int(inp)
+                if 0 <= idx <= len(options):
+                    if idx == 0:
+                        return None
+                    else:
+                        return idx - 1
+            else:
+                filt = [m.group(1) for m in re.finditer(r'(\S+)', inp)]
+            print()
         except ValueError:
             print()
             pass

@@ -1,13 +1,14 @@
 from sqlite3 import Connection
 
 from remem.cache import Cache
+from remem.common import values
 from remem.constants import CardTypes
 from remem.dtos import Card, Folder, CardTranslate, Query
 
 
 def get_last_id(con: Connection) -> int:
     row = con.execute("""SELECT last_insert_rowid()""").fetchone()
-    return int(list(row.values())[0])
+    return int(values(row)[0])
 
 
 def insert_folder(con: Connection, folder: Folder) -> int:

@@ -1,6 +1,8 @@
 from typing import TypeVar, Callable, Generic
 
 T = TypeVar('T')
+K = TypeVar('K')
+V = TypeVar('V')
 
 
 class Try(Generic[T]):
@@ -29,3 +31,7 @@ class Try(Generic[T]):
 
 def try_(func: Callable[[], T]) -> Try[T]:
     return Try(func=func)
+
+
+def values(d: [K, V]) -> list[V]:
+    return list(d.values())
