@@ -33,5 +33,9 @@ def try_(func: Callable[[], T]) -> Try[T]:
     return Try(func=func)
 
 
+def fit_to_range(value: int, min_: int, max_: int) -> int:
+    return min(max(value, min_), max_)
+
+
 def values(d: [K, V]) -> list[V]:
     return list(d.values())

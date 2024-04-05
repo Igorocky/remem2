@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Language:
     id: int
     ext_id: str
     name: str
+
 
 @dataclass
 class Folder:
@@ -29,7 +31,7 @@ class Task:
 
 
 @dataclass
-class Card:
+class BaseCard:
     id: int = -1
     ext_id: str = ''
     folder_id: int = -1
@@ -38,19 +40,26 @@ class Card:
 
 
 @dataclass
-class CardTranslate(Card):
+class CardTranslate:
+    base: BaseCard = BaseCard()
+    id: int = -1,
     lang1_id: int = -1
-    readonly1: bool = False
+    read_only1: int = 0
     text1: str = ''
     tran1: str = ''
     lang2_id: int = -1
-    readonly2: bool = False
+    read_only2: int = 0
     text2: str = ''
     tran2: str = ''
 
 
 @dataclass
-class CardFillGaps(Card):
+class CardFillGaps:
+    base: BaseCard = BaseCard()
+    id: int = -1,
     lang_id: int = -1
     text: str = ''
     notes: str = ''
+
+
+AnyCard = CardTranslate | CardFillGaps

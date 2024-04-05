@@ -1,10 +1,11 @@
 from sqlite3 import Connection
 
+from remem.common import fit_to_range
 from remem.database import Database
 from remem.dtos import Folder
 
 
-def select_folder_path(con: Connection, folder_id: int) -> list[Folder]:
+def select_folder_path(con: Connection, folder_id: int | None) -> list[Folder]:
     cur = con.execute("""
             with recursive folders(id, name, parent_id) as (
                 select id, name, parent_id from FOLDER where id = ?
@@ -109,16 +110,16 @@ class Cache:
 
     _sn_card_tran_read_only1 = 'card_tran_read_only1'
 
-    def get_card_tran_read_only1(self) -> bool:
-        return self._get_int(Cache._sn_card_tran_read_only1) == 1
+    def get_card_tran_read_only1(self) -> int:
+        return fit_to_range(self._get_int(Cache._sn_card_tran_read_only1), 0, 1)
 
-    def set_card_tran_read_only1(self, read_only: bool) -> None:
-        self._set(Cache._sn_card_tran_read_only1, '1' if read_only else '0')
+    def set_card_tran_read_only1(self, read_only: int) -> None:
+        self._set(Cache._sn_card_tran_read_only1, str(fit_to_range(read_only, 0, 1)))
 
     _sn_card_tran_read_only2 = 'card_tran_read_only2'
 
-    def get_card_tran_read_only2(self) -> bool:
-        return self._get_int(Cache._sn_card_tran_read_only2) == 1
+    def get_card_tran_read_only2(self) -> int:
+        return fit_to_range(self._get_int(Cache._sn_card_tran_read_only2), 0, 1)
 
-    def set_card_tran_read_only2(self, read_only: bool) -> None:
-        self._set(Cache._sn_card_tran_read_only2, '1' if read_only else '0')
+    def set_card_tran_read_only2(self, read_only: int) -> None:
+        self._set(Cache._sn_card_tran_read_only2, str(fit_to_range(read_only, 0, 1)))

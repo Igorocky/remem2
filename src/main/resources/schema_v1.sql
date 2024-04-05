@@ -79,19 +79,24 @@ create table CARD
     crt_time integer not null default (unixepoch())
 ) strict;
 
-create table CARD_EXT_ID_CHG
+create table CARD_CHG
 (
     time integer not null default (unixepoch()),
-    card_id integer not null,
-    card_ext_id text not null
+    id   integer not null ,
+    ext_id text not null ,
+    folder_id integer not null ,
+    card_type_id integer not null ,
+    crt_time integer not null
 ) strict ;
 
-create trigger card_insert_ext_id AFTER INSERT ON CARD FOR EACH ROW BEGIN
-    insert into CARD_EXT_ID_CHG(card_id, card_ext_id) VALUES (new.id, new.ext_id);
+create trigger card_insert AFTER INSERT ON CARD FOR EACH ROW BEGIN
+    insert into CARD_CHG(id, ext_id, folder_id, card_type_id, crt_time)
+        VALUES (new.id, new.ext_id, new.folder_id, new.card_type_id, new.crt_time);
 END;
 
-create trigger card_update_ext_id AFTER UPDATE ON CARD FOR EACH ROW WHEN old.ext_id <> new.ext_id BEGIN
-    insert into CARD_EXT_ID_CHG(card_id, card_ext_id) VALUES (new.id, new.ext_id);
+create trigger card_update AFTER UPDATE ON CARD FOR EACH ROW WHEN old.ext_id <> new.ext_id BEGIN
+    insert into CARD_CHG(id, ext_id, folder_id, card_type_id, crt_time)
+        VALUES (new.id, new.ext_id, new.folder_id, new.card_type_id, new.crt_time);
 END;
 
 create table TASK
@@ -132,11 +137,11 @@ create table CARD_TRAN_CHG
 (
     time integer not null default (unixepoch()),
     id integer not null,
-    lang1_id integer not null references LANGUAGE on delete restrict on update restrict ,
+    lang1_id integer not null ,
     text1 text not null ,
     tran1 text not null ,
     read_only1 integer not null check ( read_only1 in (0,1) ),
-    lang2_id integer not null references LANGUAGE on delete restrict on update restrict ,
+    lang2_id integer not null ,
     text2 text not null,
     tran2 text not null,
     read_only2 integer not null check ( read_only2 in (0,1) )
@@ -164,7 +169,7 @@ create table CARD_FILL_CHG
 (
     time integer not null default (unixepoch()),
     id integer not null,
-    lang_id integer not null references LANGUAGE on delete restrict on update restrict ,
+    lang_id integer not null ,
     text text not null,
     notes text not null
 ) strict ;

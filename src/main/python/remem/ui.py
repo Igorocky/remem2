@@ -6,7 +6,7 @@ from typing import Callable, Tuple
 
 from remem.cache import Cache
 from remem.common import Try
-from remem.dtos import CardTranslate, CardFillGaps, Query, Card
+from remem.dtos import CardTranslate, CardFillGaps, Query, AnyCard, BaseCard
 
 windll.shcore.SetProcessDpiAwareness(1)
 
@@ -129,7 +129,7 @@ def open_dialog(title: str, render: Callable[[tk.Widget, Callable[[], None]], tk
 def render_add_card_view(
         cache: Cache,
         parent: tk.Widget,
-        on_card_save: Callable[[Card], Try[None]],
+        on_card_save: Callable[[AnyCard], Try[None]],
 ) -> tk.Widget:
     nb = ttk.Notebook(parent)
     nb.add(render_card_translate(cache, parent=nb, is_edit=False, on_save=on_card_save), text='Translate')
@@ -146,28 +146,28 @@ def render_card_translate(
 ) -> tk.Widget:
     if card is None:
         card = CardTranslate(
-            lang1_id=cache.card_tran_lang1_id,
-            lang2_id=cache.card_tran_lang2_id,
-            readonly1=cache.card_tran_read_only1,
-            readonly2=cache.card_tran_read_only2,
+            lang1_id=cache.get_card_tran_lang1_id(),
+            lang2_id=cache.get_card_tran_lang2_id(),
+            read_only1=cache.get_card_tran_read_only1(),
+            read_only2=cache.get_card_tran_read_only2(),
         )
 
     lang1_str = StringVar(value=cache.lang_is[card.lang1_id])
-    readonly1 = BooleanVar(value=card.readonly1)
+    read_only1 = BooleanVar(value=bool(card.read_only1))
     text1 = StringVar(value=card.text1)
     tran1 = StringVar(value=card.tran1)
     lang2_str = StringVar(value=cache.lang_is[card.lang2_id])
-    readonly2 = BooleanVar(value=card.readonly2)
+    read_only2 = BooleanVar(value=bool(card.read_only2))
     text2 = StringVar(value=card.text2)
     tran2 = StringVar(value=card.tran2)
 
     def do_save() -> None:
         card.lang1_id = cache.lang_si[lang1_str.get()]
-        card.readonly1 = readonly1.get()
+        card.readonly1 = read_only1.get()
         card.text1 = text1.get()
         card.tran1 = tran1.get()
         card.lang2_id = cache.lang_si[lang2_str.get()]
-        card.readonly2 = readonly2.get()
+        card.readonly2 = read_only2.get()
         card.text2 = text2.get()
         card.tran2 = tran2.get()
         result = on_save(card)
@@ -190,13 +190,13 @@ def render_card_translate(
         ],
         [
             Combobox(values=langs, width=lang_width, var=lang1_str),
-            Checkbutton(text='read only', var=readonly1),
+            Checkbutton(text='read only', var=read_only1),
             Entry(width=50, var=text1),
             Entry(width=20, var=tran1),
         ],
         [
             Combobox(values=langs, width=lang_width, var=lang2_str),
-            Checkbutton(text='read only', var=readonly2),
+            Checkbutton(text='read only', var=read_only2),
             Entry(width=50, var=text2),
             Entry(width=20, var=tran2),
         ],
