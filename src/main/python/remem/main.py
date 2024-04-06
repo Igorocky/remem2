@@ -2,10 +2,12 @@ import sys
 
 sys.path.append('src/main/python')
 
+from remem.app_context import AppCtx
+from remem.cache import Cache
 from remem.app_settings import load_app_settings
 from remem.commands import CollectionOfCommands
 from remem.console import Console, select_single_option
-from remem.data_commands import add_dao_commands
+from remem.data_commands import add_data_commands
 from remem.database import Database
 
 
@@ -29,10 +31,12 @@ def main() -> None:
     app_settings = load_app_settings(settings_path)
     c = Console(app_settings=app_settings)
     database = Database(app_settings=app_settings, c=c)
+    cache = Cache(database)
+    ctx = AppCtx(c, database, cache)
     commands = CollectionOfCommands()
     commands.add_command('exit remem', lambda: exit(0))
     commands.add_command('show help', lambda: show_help(commands, c))
-    add_dao_commands(c, database, commands)
+    add_data_commands(ctx, commands)
 
     while True:
         try:

@@ -5,20 +5,20 @@ from tkinter import ttk
 from typing import Callable
 from uuid import uuid4
 
-from remem.cache import Cache
+from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
 from remem.common import Try, try_
-from remem.console import Console, select_single_option
+from remem.console import select_single_option
 from remem.dao import insert_folder, select_folder, delete_folder, insert_card, select_all_queries, insert_query, \
     update_query, delete_query, select_card, update_card
-from remem.database import Database
 from remem.dtos import CardTranslate, AnyCard, Query, Folder, CardFillGaps
 from remem.ui import render_add_card_view, render_card_translate, render_query, open_dialog, render_card_fill
 
 windll.shcore.SetProcessDpiAwareness(1)
 
 
-def cmd_make_new_folder(c: Console, db: Database, cache: Cache) -> None:
+def cmd_make_new_folder(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     name = c.input("New folder name: ").strip()
     if name == '':
         c.error('Folder name must not be empty')
@@ -30,12 +30,14 @@ def cmd_make_new_folder(c: Console, db: Database, cache: Cache) -> None:
     c.info(f'{name}:{new_folder_id}')
 
 
-def cmd_show_current_folder(c: Console, cache: Cache) -> None:
+def cmd_show_current_folder(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     print(c.mark_info('Current folder: '), end='')
     print('/' + '/'.join([f'{f.name}:{f.id}' for f in cache.get_curr_folder_path()]))
 
 
-def cmd_list_all_folders(c:Console, db: Database) -> None:
+def cmd_list_all_folders(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     c.info('List of all folders:')
     for r in db.con.execute("""
         with recursive folders(level, id, name, parent) as (
@@ -50,13 +52,15 @@ def cmd_list_all_folders(c:Console, db: Database) -> None:
         print(f'{"    " * r['level']}{r['name']}:{r['id']}')
 
 
-def cmd_select_folder_by_id(c: Console, cache: Cache) -> None:
+def cmd_select_folder_by_id(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     inp = c.input("id of the folder to select: ").strip()
     cache.set_curr_folder(None if inp == '' else int(inp))
-    cmd_show_current_folder(c, cache)
+    cmd_show_current_folder(ctx)
 
 
-def cmd_delete_folder_by_id(c: Console, db: Database, cache: Cache) -> None:
+def cmd_delete_folder_by_id(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     folder_id = int(c.input("id of the folder to delete: ").strip())
     folder = select_folder(db.con, folder_id)
     if folder is None:
@@ -66,10 +70,11 @@ def cmd_delete_folder_by_id(c: Console, db: Database, cache: Cache) -> None:
         c.success('The folder was deleted.')
         if folder_id in {f.id for f in cache.get_curr_folder_path()}:
             cache.set_curr_folder(None)
-            cmd_show_current_folder(c, cache)
+            cmd_show_current_folder(ctx)
 
 
-def prepare_card_for_insert(cache: Cache, card: AnyCard) -> None:
+def prepare_card_for_insert(ctx: AppCtx, card: AnyCard) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     card.base.ext_id = str(uuid4())
     curr_folder_path = cache.get_curr_folder_path()
     if len(curr_folder_path) > 0:
@@ -80,9 +85,11 @@ def prepare_card_for_insert(cache: Cache, card: AnyCard) -> None:
         raise Exception(f'Unexpected card type: {card}')
 
 
-def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
+def cmd_add_card(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
+
     def do_insert_card(card: AnyCard) -> None:
-        prepare_card_for_insert(cache, card)
+        prepare_card_for_insert(ctx, card)
         if isinstance(card, CardTranslate):
             cache.set_card_tran_lang1_id(card.lang1_id)
             cache.set_card_tran_lang2_id(card.lang2_id)
@@ -109,7 +116,8 @@ def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
     root.mainloop()
 
 
-def cmd_edit_card_by_id(c: Console, db: Database, cache: Cache) -> None:
+def cmd_edit_card_by_id(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     card_id = int(c.input('Enter id of the card to edit: '))
     card = select_card(db.con, cache, card_id)
     if card is None:
@@ -142,13 +150,16 @@ def cmd_edit_card_by_id(c: Console, db: Database, cache: Cache) -> None:
         raise Exception(f'Unexpected type of card: {card}')
 
 
-def cmd_list_all_queries(c: Console, db: Database) -> None:
+def cmd_list_all_queries(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     c.info(f'List of all queries:')
     for q in select_all_queries(db.con):
         print(q.name)
 
 
-def cmd_add_query(db: Database) -> None:
+def cmd_add_query(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
+
     def save_query(query: Query) -> Try[None]:
         def do() -> None:
             insert_query(db.con, query)
@@ -167,7 +178,8 @@ def cmd_add_query(db: Database) -> None:
     root.mainloop()
 
 
-def cmd_edit_query(c: Console, db: Database) -> None:
+def cmd_edit_query(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to edit:'))
     idx = select_single_option([q.name for q in all_queries])
@@ -192,7 +204,8 @@ def cmd_edit_query(c: Console, db: Database) -> None:
     )
 
 
-def cmd_delete_query(c: Console, db: Database) -> None:
+def cmd_delete_query(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to delete:'))
     idx = select_single_option([q.name for q in all_queries])
@@ -204,7 +217,8 @@ def cmd_delete_query(c: Console, db: Database) -> None:
     c.info('The query has been deleted.')
 
 
-def cmd_run_query(c: Console, db: Database) -> None:
+def cmd_run_query(ctx: AppCtx) -> None:
+    c, db, cache = ctx.c, ctx.db, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to run:'))
     idx = select_single_option([q.name for q in all_queries])
@@ -233,19 +247,21 @@ def cmd_run_query(c: Console, db: Database) -> None:
     print('-' * len(header))
 
 
-def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -> None:
-    cache = Cache(db)
-    commands.add_command('make new folder', lambda: cmd_make_new_folder(c, db, cache))
-    commands.add_command('show current folder', lambda: cmd_show_current_folder(c, cache))
-    commands.add_command('list all folders', lambda: cmd_list_all_folders(c, db))
-    commands.add_command('select folder by id', lambda: cmd_select_folder_by_id(c, cache))
-    commands.add_command('delete folder by id', lambda: cmd_delete_folder_by_id(c, db, cache))
+def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
+    def add_command(name: str, cmd: Callable[[AppCtx], None]) -> None:
+        commands.add_command(name, lambda: cmd(ctx))
 
-    commands.add_command('add card', lambda: cmd_add_card(c, db, cache))
-    commands.add_command('edit card', lambda: cmd_edit_card_by_id(c, db, cache))
+    add_command('make new folder', cmd_make_new_folder)
+    add_command('show current folder', cmd_show_current_folder)
+    add_command('list all folders', cmd_list_all_folders)
+    add_command('select folder by id', cmd_select_folder_by_id)
+    add_command('delete folder by id', cmd_delete_folder_by_id)
 
-    commands.add_command('add query', lambda: cmd_add_query(db))
-    commands.add_command('list all queries', lambda: cmd_list_all_queries(c, db))
-    commands.add_command('edit query', lambda: cmd_edit_query(c, db))
-    commands.add_command('run query', lambda: cmd_run_query(c, db))
-    commands.add_command('delete query', lambda: cmd_delete_query(c, db))
+    add_command('add card', cmd_add_card)
+    add_command('edit card', cmd_edit_card_by_id)
+
+    add_command('add query', cmd_add_query)
+    add_command('list all queries', cmd_list_all_queries)
+    add_command('edit query', cmd_edit_query)
+    add_command('run query', cmd_run_query)
+    add_command('delete query', cmd_delete_query)
