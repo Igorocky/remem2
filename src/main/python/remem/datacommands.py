@@ -1,7 +1,6 @@
 import re
 import tkinter as tk
 from ctypes import windll
-from sqlite3 import Cursor
 from tkinter import ttk
 from typing import Callable
 from uuid import uuid4
@@ -10,12 +9,11 @@ from remem.cache import Cache
 from remem.commands import CollectionOfCommands
 from remem.common import Try, try_
 from remem.console import Console, select_single_option
-from remem.constants import CardTypes
 from remem.dao import insert_folder, select_folder, delete_folder, insert_card, select_all_queries, insert_query, \
-    update_query, delete_query, select_card
+    update_query, delete_query, select_card, update_card
 from remem.database import Database
-from remem.dtos import CardTranslate, AnyCard, Query, Task, Folder, CardFillGaps
-from remem.ui import render_add_card_view, render_card_translate, render_query, open_dialog
+from remem.dtos import CardTranslate, AnyCard, Query, Folder, CardFillGaps
+from remem.ui import render_add_card_view, render_card_translate, render_query, open_dialog, render_card_fill
 
 windll.shcore.SetProcessDpiAwareness(1)
 
@@ -92,6 +90,9 @@ def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
         with db.transaction() as tr:
             insert_card(tr, card)
 
+    def do_save_card(crd: AnyCard) -> Try[None]:
+        return try_(lambda: do_insert_card(crd))
+
     if len(cache.get_curr_folder_path()) == 0:
         c.error('Cannot create a card in the root folder.')
         return
@@ -102,50 +103,9 @@ def cmd_add_card(c: Console, db: Database, cache: Cache) -> None:
     render_add_card_view(
         cache,
         parent=root_frame,
-        on_card_save=lambda card: try_(lambda crd: do_insert_card(crd)),
+        on_card_save=do_save_card,
     ).grid()
     root.mainloop()
-
-
-# def edit_translate_card(db: Database, cache: Cache, card_id: int) -> None:
-#     cursor = db.con.execute("""
-#         select lang1_id, read_only1, text1, tran1, lang2_id, read_only2, text2, tran2
-#         from CARD_TRAN
-#         where id = :card_id
-#     """, {'card_id': card_id})
-#     col_idxs = description_to_col_idxs(cursor)
-#     row = cursor.fetchone()
-#     card = CardTranslate(
-#         id=card_id,
-#         lang1_str=cache.lang_is[row[col_idxs['lang1_id']]],
-#         lang2_str=cache.lang_is[row[col_idxs['lang2_id']]],
-#         readonly1=row[col_idxs['read_only1']] != 0,
-#         readonly2=row[col_idxs['read_only2']] != 0,
-#         text1=row[col_idxs['text1']],
-#         text2=row[col_idxs['text2']],
-#         tran1=row[col_idxs['tran1']],
-#         tran2=row[col_idxs['tran2']],
-#     )
-#
-#     def on_save(card1: CardTranslate, close_dialog: Callable[[], None]) -> Try[None]:
-#         res = update_card_translate(db, cache, card1)
-#         if res.is_success():
-#             close_dialog()
-#         return res
-#
-#     open_dialog(
-#         title='Edit Translate Card',
-#         render_form=lambda parent, close_dialog: render_card_translate(
-#             parent, langs=list(cache.lang_si),
-#             card=card,
-#             is_edit=True,
-#             on_save=lambda card1: on_save(card1, close_dialog),
-#         )
-#     )
-
-
-# def edit_fill_card(c: Console, db: Database, cache: Cache, card_id: int) -> None:
-#     pass
 
 
 def cmd_edit_card_by_id(c: Console, db: Database, cache: Cache) -> None:
@@ -154,30 +114,31 @@ def cmd_edit_card_by_id(c: Console, db: Database, cache: Cache) -> None:
     if card is None:
         c.error(f'The card with id of {card_id} doesn\'t exist.')
         return
+
+    def save_card(crd: AnyCard, close_dialog: Callable[[], None]) -> Try[None]:
+        res = try_(lambda: update_card(db.con, crd))
+        if res.is_success():
+            close_dialog()
+        return res
+
     if isinstance(card, CardTranslate):
-        card_type = 'Translate'
+        open_dialog(
+            title=f'Edit Translate Card',
+            render=lambda parent, close_dialog: render_card_translate(
+                cache, parent, is_edit=True, card=card,
+                on_save=lambda crd: save_card(crd, close_dialog),
+            )
+        )
     elif isinstance(card, CardFillGaps):
-        card_type = 'Fill Gaps'
+        open_dialog(
+            title=f'Edit Fill Gaps Card',
+            render=lambda parent, close_dialog: render_card_fill(
+                cache, parent, is_edit=True, card=card,
+                on_save=lambda crd: save_card(crd, close_dialog),
+            )
+        )
     else:
         raise Exception(f'Unexpected type of card: {card}')
-    open_dialog(
-        title=f'Edit {card_type} Card',
-        render_form=lambda parent, close_dialog: render_card_translate(
-            parent, langs=list(cache.lang_si),
-            card=card,
-            is_edit=True,
-            on_save=lambda card1: on_save(card1, close_dialog),
-        )
-    )
-    card_type_id = db.con.execute("""
-        select card_type_id from CARD where id = :card_id
-    """, {'card_id': card_id}).fetchone()[0]
-    if card_type_id == cache.card_types_si[CardTypes.translate]:
-        edit_translate_card(db, cache, card_id)
-    elif card_type_id == cache.card_types_si[CardTypes.fill_gaps]:
-        edit_fill_card(c, db, cache, card_id)
-    else:
-        raise Exception(f'Unexpected type of card {card_type_id}.')
 
 
 def cmd_list_all_queries(c: Console, db: Database) -> None:

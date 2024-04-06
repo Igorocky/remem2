@@ -10,9 +10,9 @@ class Language:
 
 @dataclass
 class Folder:
-    id: int
-    parent_id: int | None
-    name: str
+    id: int = -1
+    parent_id: int | None = -1
+    name: str = ''
 
 
 @dataclass
@@ -42,7 +42,7 @@ class BaseCard:
 @dataclass
 class CardTranslate:
     base: BaseCard = BaseCard()
-    id: int = -1,
+    id: int = -1
     lang1_id: int = -1
     read_only1: int = 0
     text1: str = ''
@@ -56,7 +56,7 @@ class CardTranslate:
 @dataclass
 class CardFillGaps:
     base: BaseCard = BaseCard()
-    id: int = -1,
+    id: int = -1
     lang_id: int = -1
     text: str = ''
     notes: str = ''

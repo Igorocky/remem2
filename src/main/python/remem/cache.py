@@ -111,7 +111,8 @@ class Cache:
     _sn_card_tran_read_only1 = 'card_tran_read_only1'
 
     def get_card_tran_read_only1(self) -> int:
-        return fit_to_range(self._get_int(Cache._sn_card_tran_read_only1), 0, 1)
+        value = self._get_int(Cache._sn_card_tran_read_only1)
+        return 0 if value is None else fit_to_range(value, 0, 1)
 
     def set_card_tran_read_only1(self, read_only: int) -> None:
         self._set(Cache._sn_card_tran_read_only1, str(fit_to_range(read_only, 0, 1)))
@@ -119,7 +120,8 @@ class Cache:
     _sn_card_tran_read_only2 = 'card_tran_read_only2'
 
     def get_card_tran_read_only2(self) -> int:
-        return fit_to_range(self._get_int(Cache._sn_card_tran_read_only2), 0, 1)
+        value = self._get_int(Cache._sn_card_tran_read_only2)
+        return 0 if value is None else fit_to_range(value, 0, 1)
 
     def set_card_tran_read_only2(self, read_only: int) -> None:
         self._set(Cache._sn_card_tran_read_only2, str(fit_to_range(read_only, 0, 1)))

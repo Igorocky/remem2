@@ -3,7 +3,7 @@ from sqlite3 import Connection
 from remem.cache import Cache
 from remem.common import values
 from remem.constants import CardTypes
-from remem.dtos import Card, Folder, CardTranslate, Query, AnyCard, BaseCard
+from remem.dtos import Folder, CardTranslate, Query, AnyCard, BaseCard
 
 
 def get_last_id(con: Connection) -> int:
@@ -96,10 +96,7 @@ def select_card(con: Connection, cache: Cache, card_id: int) -> AnyCard | None:
     match card_type_code:
         case CardTypes.translate:
             row = con.execute(""" select * from CARD_TRAN where id = ? """, [card_id]).fetchone()
-            card = CardTranslate(base=base_card, **row)
-            card.lang1_str = cache.lang_is[card.lang1_id]
-            card.lang2_str = cache.lang_is[card.lang2_id]
-            return card
+            return CardTranslate(base=base_card, **row)
         case _:
             raise Exception(f'Unexpected card type: {card_type_code}')
 

@@ -37,5 +37,5 @@ def fit_to_range(value: int, min_: int, max_: int) -> int:
     return min(max(value, min_), max_)
 
 
-def values(d: [K, V]) -> list[V]:
+def values(d: dict[K, V]) -> list[V]:
     return list(d.values())

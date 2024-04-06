@@ -6,7 +6,7 @@ from typing import Callable, Tuple
 
 from remem.cache import Cache
 from remem.common import Try
-from remem.dtos import CardTranslate, CardFillGaps, Query, AnyCard, BaseCard
+from remem.dtos import CardTranslate, CardFillGaps, Query, AnyCard
 
 windll.shcore.SetProcessDpiAwareness(1)
 
@@ -89,9 +89,9 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
             elif isinstance(child, Text):
                 widget = tk.Text(frame, width=child.width, height=child.height)  # type: ignore[assignment]
             elif isinstance(child, Text2):
-                widget = tk.Text(frame, width=child.width, height=child.height)
-                widget.insert('end', child.init_value)
-                child.holder.append(widget)
+                widget = tk.Text(frame, width=child.width, height=child.height)  # type: ignore[assignment]
+                widget.insert('end', child.init_value)  # type: ignore[attr-defined]
+                child.holder.append(widget)  # type: ignore[arg-type]
             elif isinstance(child, Custom):
                 widget = child.widget(frame)  # type: ignore[assignment]
             elif isinstance(child, Button):
@@ -163,11 +163,11 @@ def render_card_translate(
 
     def do_save() -> None:
         card.lang1_id = cache.lang_si[lang1_str.get()]
-        card.readonly1 = read_only1.get()
+        card.read_only1 = read_only1.get()
         card.text1 = text1.get()
         card.tran1 = tran1.get()
         card.lang2_id = cache.lang_si[lang2_str.get()]
-        card.readonly2 = read_only2.get()
+        card.read_only2 = read_only2.get()
         card.text2 = text2.get()
         card.tran2 = tran2.get()
         result = on_save(card)

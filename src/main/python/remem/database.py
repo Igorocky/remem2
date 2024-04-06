@@ -30,7 +30,7 @@ class Transaction:
             self._con.autocommit = True
 
 
-def dict_factory(cursor, row):
+def dict_factory(cursor: sqlite3.Cursor, row: sqlite3.Row) -> dict[str, any]:  # type: ignore[valid-type]
     fields = [column[0] for column in cursor.description]
     return {key: value for key, value in zip(fields, row)}
 
