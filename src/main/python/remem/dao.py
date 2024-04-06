@@ -76,6 +76,8 @@ def insert_card(con: Connection, card: AnyCard) -> int:
         card.base.__dict__
     )
     card_id = get_last_id(con)
+    card.base.id = card_id
+    card.id = card_id
     if isinstance(card, CardTranslate):
         con.execute(
             """ insert into CARD_TRAN(id, lang1_id, read_only1, text1, tran1, lang2_id, read_only2, text2, tran2)

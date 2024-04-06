@@ -5,7 +5,7 @@ sys.path.append('src/main/python')
 from remem.app_context import AppCtx
 from remem.cache import Cache
 from remem.app_settings import load_app_settings
-from remem.commands import CollectionOfCommands
+from remem.commands import CollectionOfCommands, Cmd
 from remem.console import Console, select_single_option
 from remem.data_commands import add_data_commands
 from remem.database import Database
@@ -15,13 +15,20 @@ def exit_remem() -> None:
     exit(0)
 
 
-def show_help(cmds: CollectionOfCommands, c: Console) -> None:
+def show_help(all_commands: CollectionOfCommands, c: Console) -> None:
+    def print_commands(cmds: list[Cmd], prefix:str) -> None:
+        for cmd in cmds:
+            if cmd.descr == '':
+                print(prefix + cmd.name)
+            else:
+                print(prefix + f'{cmd.name} - {cmd.descr}')
+
     c.info("List of available commands:")
-    for name, descr in cmds.list_commands():
-        if descr == '':
-            print(name)
-        else:
-            print(f'{name} - {descr}')
+    commands_by_cats = all_commands.list_commands()
+    print_commands(commands_by_cats.no_cat, prefix='')
+    for cat, cmds in commands_by_cats.by_cat.items():
+        print(f'[{cat}]')
+        print_commands(cmds, prefix='    ')
 
 
 def main() -> None:
@@ -34,8 +41,8 @@ def main() -> None:
     cache = Cache(database)
     ctx = AppCtx(c, database, cache)
     commands = CollectionOfCommands()
-    commands.add_command('exit remem', lambda: exit(0))
-    commands.add_command('show help', lambda: show_help(commands, c))
+    commands.add_command('', 'show help', lambda: show_help(commands, c))
+    commands.add_command('', 'exit remem', lambda: exit(0))
     add_data_commands(ctx, commands)
 
     while True:

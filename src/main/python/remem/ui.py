@@ -1,7 +1,7 @@
 import tkinter as tk
 from ctypes import windll
 from dataclasses import dataclass, field
-from tkinter import ttk, StringVar, messagebox, BooleanVar
+from tkinter import ttk, StringVar, messagebox, IntVar
 from typing import Callable, Tuple
 
 from remem.cache import Cache
@@ -67,7 +67,7 @@ class Button(Widget):
 @dataclass
 class Checkbutton(Widget):
     text: str = ''
-    var: tk.BooleanVar | None = None
+    var: tk.IntVar | None = None
 
 
 def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tuple[int, int] = (5, 5)) -> tk.Widget:
@@ -99,8 +99,7 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
                 if child.cmd is not None:
                     widget.configure(command=child.cmd)  # type: ignore[call-overload]
             elif isinstance(child, Checkbutton):
-                widget = ttk.Checkbutton(frame, text=child.text, offvalue=False,
-                                         onvalue=True)  # type: ignore[assignment]
+                widget = ttk.Checkbutton(frame, text=child.text, offvalue=0, onvalue=1)  # type: ignore[assignment]
                 if child.var is not None:
                     widget.configure(variable=child.var)  # type: ignore[call-overload]
             else:
@@ -153,11 +152,11 @@ def render_card_translate(
         )
 
     lang1_str = StringVar(value=cache.lang_is[card.lang1_id])
-    read_only1 = BooleanVar(value=bool(card.read_only1))
+    read_only1 = IntVar(value=card.read_only1)
     text1 = StringVar(value=card.text1)
     tran1 = StringVar(value=card.tran1)
     lang2_str = StringVar(value=cache.lang_is[card.lang2_id])
-    read_only2 = BooleanVar(value=bool(card.read_only2))
+    read_only2 = IntVar(value=card.read_only2)
     text2 = StringVar(value=card.text2)
     tran2 = StringVar(value=card.tran2)
 

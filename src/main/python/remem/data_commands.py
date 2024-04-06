@@ -122,6 +122,8 @@ def cmd_add_card(ctx: AppCtx) -> None:
             cache.set_card_tran_read_only2(card.read_only2)
         with db.transaction() as tr:
             insert_card(tr, card)
+        c.info('A card has been saved:')
+        c.hint(str(card))
 
     def do_save_card(crd: AnyCard) -> Try[None]:
         return try_(lambda: do_insert_card(crd))
@@ -273,21 +275,21 @@ def cmd_run_query(ctx: AppCtx) -> None:
 
 
 def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
-    def add_command(name: str, cmd: Callable[[AppCtx], None]) -> None:
-        commands.add_command(name, lambda: cmd(ctx))
+    def add_command(cat: str, name: str, cmd: Callable[[AppCtx], None]) -> None:
+        commands.add_command(cat, name, lambda: cmd(ctx))
 
-    add_command('make new folder', cmd_make_new_folder)
-    add_command('show current folder', cmd_show_current_folder)
-    add_command('list all folders', cmd_list_all_folders)
-    add_command('select folder by id', cmd_select_folder_by_id)
-    add_command('delete folder by id', cmd_delete_folder_by_id)
-    add_command('move folder', cmd_move_folder)
+    add_command('Folders', 'make new folder', cmd_make_new_folder)
+    add_command('Folders', 'show current folder', cmd_show_current_folder)
+    add_command('Folders', 'list all folders', cmd_list_all_folders)
+    add_command('Folders', 'select folder by id', cmd_select_folder_by_id)
+    add_command('Folders', 'move folder', cmd_move_folder)
+    add_command('Folders', 'delete folder by id', cmd_delete_folder_by_id)
 
-    add_command('add card', cmd_add_card)
-    add_command('edit card', cmd_edit_card_by_id)
+    add_command('Cards', 'add card', cmd_add_card)
+    add_command('Cards', 'edit card', cmd_edit_card_by_id)
 
-    add_command('add query', cmd_add_query)
-    add_command('list all queries', cmd_list_all_queries)
-    add_command('edit query', cmd_edit_query)
-    add_command('run query', cmd_run_query)
-    add_command('delete query', cmd_delete_query)
+    add_command('Queries', 'add query', cmd_add_query)
+    add_command('Queries', 'list all queries', cmd_list_all_queries)
+    add_command('Queries', 'edit query', cmd_edit_query)
+    add_command('Queries', 'run query', cmd_run_query)
+    add_command('Queries', 'delete query', cmd_delete_query)

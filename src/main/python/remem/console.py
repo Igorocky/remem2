@@ -83,6 +83,9 @@ class Console:
     def info(self, text: str) -> None:
         print(self.mark_info(text))
 
+    def hint(self, text: str) -> None:
+        print(self.mark_hint(text))
+
     def print_last_exception_info(self, ex: Exception) -> None:
         self.error(str(ex))
         if self._app_settings.print_stack_traces_for_exceptions:
