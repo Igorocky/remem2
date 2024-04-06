@@ -84,6 +84,6 @@ class Console:
         print(self.mark_info(text))
 
     def print_last_exception_info(self, ex: Exception) -> None:
+        self.error(str(ex))
         if self._app_settings.print_stack_traces_for_exceptions:
-            self.error(str(ex))
             print(traceback.format_exc())

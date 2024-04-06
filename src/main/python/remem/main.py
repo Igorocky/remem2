@@ -55,7 +55,6 @@ def main() -> None:
                     print()
                     cmds[idx].func()
         except Exception as ex:
-            c.error(str(ex))
             c.print_last_exception_info(ex)
 
 

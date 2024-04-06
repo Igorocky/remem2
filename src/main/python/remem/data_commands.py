@@ -10,7 +10,7 @@ from remem.commands import CollectionOfCommands
 from remem.common import Try, try_
 from remem.console import select_single_option
 from remem.dao import insert_folder, select_folder, delete_folder, insert_card, select_all_queries, insert_query, \
-    update_query, delete_query, select_card, update_card
+    update_query, delete_query, select_card, update_card, update_folder
 from remem.dtos import CardTranslate, AnyCard, Query, Folder, CardFillGaps
 from remem.ui import render_add_card_view, render_card_translate, render_query, open_dialog, render_card_fill
 
@@ -18,7 +18,7 @@ windll.shcore.SetProcessDpiAwareness(1)
 
 
 def cmd_make_new_folder(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     name = c.input("New folder name: ").strip()
     if name == '':
         c.error('Folder name must not be empty')
@@ -31,13 +31,13 @@ def cmd_make_new_folder(ctx: AppCtx) -> None:
 
 
 def cmd_show_current_folder(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     print(c.mark_info('Current folder: '), end='')
     print('/' + '/'.join([f'{f.name}:{f.id}' for f in cache.get_curr_folder_path()]))
 
 
 def cmd_list_all_folders(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     c.info('List of all folders:')
     for r in db.con.execute("""
         with recursive folders(level, id, name, parent) as (
@@ -53,14 +53,39 @@ def cmd_list_all_folders(ctx: AppCtx) -> None:
 
 
 def cmd_select_folder_by_id(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     inp = c.input("id of the folder to select: ").strip()
     cache.set_curr_folder(None if inp == '' else int(inp))
     cmd_show_current_folder(ctx)
 
 
+def cmd_move_folder(ctx: AppCtx) -> None:
+    c = ctx.console
+    db = ctx.database
+    inp = c.input("id of the folder to move: ").strip()
+    if inp == '':
+        return
+    folder_to_move = select_folder(db.con, int(inp))
+    if folder_to_move is None:
+        c.error(f'Cannot find the folder with id of {inp}')
+        return
+    inp = c.input("id of the folder to move to (c - cancel, <Enter> - the root folder): ").strip()
+    if inp.lower() == 'c':
+        return
+    if inp == '':
+        folder_to_move.parent_id = None
+    else:
+        folder_to_move_to = select_folder(db.con, int(inp))
+        if folder_to_move_to is None:
+            c.error(f'Cannot find the folder with id of {inp}')
+            return
+        folder_to_move.parent_id = folder_to_move_to.id
+    update_folder(db.con, folder_to_move)
+    c.info(f'The folder "{folder_to_move.name}" was moved.')
+
+
 def cmd_delete_folder_by_id(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     folder_id = int(c.input("id of the folder to delete: ").strip())
     folder = select_folder(db.con, folder_id)
     if folder is None:
@@ -74,7 +99,7 @@ def cmd_delete_folder_by_id(ctx: AppCtx) -> None:
 
 
 def prepare_card_for_insert(ctx: AppCtx, card: AnyCard) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     card.base.ext_id = str(uuid4())
     curr_folder_path = cache.get_curr_folder_path()
     if len(curr_folder_path) > 0:
@@ -86,7 +111,7 @@ def prepare_card_for_insert(ctx: AppCtx, card: AnyCard) -> None:
 
 
 def cmd_add_card(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
 
     def do_insert_card(card: AnyCard) -> None:
         prepare_card_for_insert(ctx, card)
@@ -117,7 +142,7 @@ def cmd_add_card(ctx: AppCtx) -> None:
 
 
 def cmd_edit_card_by_id(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     card_id = int(c.input('Enter id of the card to edit: '))
     card = select_card(db.con, cache, card_id)
     if card is None:
@@ -151,14 +176,14 @@ def cmd_edit_card_by_id(ctx: AppCtx) -> None:
 
 
 def cmd_list_all_queries(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     c.info(f'List of all queries:')
     for q in select_all_queries(db.con):
         print(q.name)
 
 
 def cmd_add_query(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
 
     def save_query(query: Query) -> Try[None]:
         def do() -> None:
@@ -179,7 +204,7 @@ def cmd_add_query(ctx: AppCtx) -> None:
 
 
 def cmd_edit_query(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to edit:'))
     idx = select_single_option([q.name for q in all_queries])
@@ -205,7 +230,7 @@ def cmd_edit_query(ctx: AppCtx) -> None:
 
 
 def cmd_delete_query(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to delete:'))
     idx = select_single_option([q.name for q in all_queries])
@@ -218,7 +243,7 @@ def cmd_delete_query(ctx: AppCtx) -> None:
 
 
 def cmd_run_query(ctx: AppCtx) -> None:
-    c, db, cache = ctx.c, ctx.db, ctx.cache
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to run:'))
     idx = select_single_option([q.name for q in all_queries])
@@ -256,6 +281,7 @@ def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     add_command('list all folders', cmd_list_all_folders)
     add_command('select folder by id', cmd_select_folder_by_id)
     add_command('delete folder by id', cmd_delete_folder_by_id)
+    add_command('move folder', cmd_move_folder)
 
     add_command('add card', cmd_add_card)
     add_command('edit card', cmd_edit_card_by_id)

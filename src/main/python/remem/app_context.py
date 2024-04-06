@@ -7,6 +7,6 @@ from remem.database import Database
 
 @dataclass
 class AppCtx:
-    c: Console
-    db: Database
+    console: Console
+    database: Database
     cache: Cache
