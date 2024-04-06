@@ -2,10 +2,10 @@ import sys
 
 sys.path.append('src/main/python')
 
-from remem.appsettings import load_app_settings
+from remem.app_settings import load_app_settings
 from remem.commands import CollectionOfCommands
 from remem.console import Console, select_single_option
-from remem.datacommands import add_dao_commands
+from remem.data_commands import add_dao_commands
 from remem.database import Database
 
 

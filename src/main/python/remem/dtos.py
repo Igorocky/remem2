@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -41,7 +41,7 @@ class BaseCard:
 
 @dataclass
 class CardTranslate:
-    base: BaseCard = BaseCard()
+    base: BaseCard = field(default_factory=lambda: BaseCard())
     id: int = -1
     lang1_id: int = -1
     read_only1: int = 0
@@ -55,7 +55,7 @@ class CardTranslate:
 
 @dataclass
 class CardFillGaps:
-    base: BaseCard = BaseCard()
+    base: BaseCard = field(default_factory=lambda: BaseCard())
     id: int = -1
     lang_id: int = -1
     text: str = ''

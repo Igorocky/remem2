@@ -2,7 +2,7 @@ import re
 import traceback
 from typing import Optional, Tuple
 
-from remem.appsettings import AppSettings
+from remem.app_settings import AppSettings
 
 
 def add_color(color_rgb: Tuple[int, int, int], text: str) -> str:

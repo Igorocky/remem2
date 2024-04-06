@@ -1,3 +1,5 @@
+import datetime
+import time
 from typing import TypeVar, Callable, Generic
 
 T = TypeVar('T')
@@ -39,3 +41,12 @@ def fit_to_range(value: int, min_: int, max_: int) -> int:
 
 def values(d: dict[K, V]) -> list[V]:
     return list(d.values())
+
+
+def unix_epoch_sec_now() -> int:
+    now = datetime.datetime.now()
+    return int(time.mktime(now.timetuple()))
+
+
+def unix_epoch_sec_to_str(unix_epoch_sec: int) -> str:
+    return str(datetime.datetime.fromtimestamp(unix_epoch_sec))

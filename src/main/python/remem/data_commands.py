@@ -35,7 +35,8 @@ def cmd_show_current_folder(c: Console, cache: Cache) -> None:
     print('/' + '/'.join([f'{f.name}:{f.id}' for f in cache.get_curr_folder_path()]))
 
 
-def cmd_list_all_folders(db: Database) -> None:
+def cmd_list_all_folders(c:Console, db: Database) -> None:
+    c.info('List of all folders:')
     for r in db.con.execute("""
         with recursive folders(level, id, name, parent) as (
             select 0, id, name, parent_id from FOLDER where parent_id is null
@@ -46,7 +47,7 @@ def cmd_list_all_folders(db: Database) -> None:
         )
         select level, id, name from folders
     """):
-        print(f'{"    " * r['level']}{r['name']}:{r['folder_id']}')
+        print(f'{"    " * r['level']}{r['name']}:{r['id']}')
 
 
 def cmd_select_folder_by_id(c: Console, cache: Cache) -> None:
@@ -236,9 +237,10 @@ def add_dao_commands(c: Console, db: Database, commands: CollectionOfCommands) -
     cache = Cache(db)
     commands.add_command('make new folder', lambda: cmd_make_new_folder(c, db, cache))
     commands.add_command('show current folder', lambda: cmd_show_current_folder(c, cache))
-    commands.add_command('list all folders', lambda: cmd_list_all_folders(db))
-    commands.add_command('go to folder by id', lambda: cmd_select_folder_by_id(c, cache))
+    commands.add_command('list all folders', lambda: cmd_list_all_folders(c, db))
+    commands.add_command('select folder by id', lambda: cmd_select_folder_by_id(c, cache))
     commands.add_command('delete folder by id', lambda: cmd_delete_folder_by_id(c, db, cache))
+
     commands.add_command('add card', lambda: cmd_add_card(c, db, cache))
     commands.add_command('edit card', lambda: cmd_edit_card_by_id(c, db, cache))
 

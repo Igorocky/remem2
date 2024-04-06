@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-from remem.appsettings import AppSettings
+from remem.app_settings import AppSettings
 from remem.common import values
 from remem.console import Console
 
@@ -48,7 +48,7 @@ class Database:
         if values(self.con.execute('pragma foreign_keys').fetchone())[0] != 1:
             raise Exception('Could not set foreign_keys = ON.')
 
-        (db_ver,) = self.con.execute('pragma user_version').fetchone()
+        db_ver = values(self.con.execute('pragma user_version').fetchone())[0]
         if db_ver == 0:
             self._init_database()
         elif db_ver != Database.latest_db_version:
