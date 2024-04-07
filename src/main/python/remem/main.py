@@ -2,13 +2,10 @@ import sys
 
 sys.path.append('src/main/python')
 
-from remem.app_context import AppCtx
-from remem.cache import Cache
-from remem.app_settings import load_app_settings
+from remem.app_context import init_app_context
 from remem.commands import CollectionOfCommands, Cmd
 from remem.console import Console, select_single_option
 from remem.data_commands import add_data_commands
-from remem.database import Database
 
 
 def exit_remem() -> None:
@@ -35,11 +32,8 @@ def main() -> None:
     settings_path = 'app-settings.toml'
     if len(sys.argv) > 1:
         settings_path = sys.argv[1].strip()
-    app_settings = load_app_settings(settings_path)
-    c = Console(app_settings=app_settings)
-    database = Database(app_settings=app_settings, c=c)
-    cache = Cache(database)
-    ctx = AppCtx(c, database, cache)
+    ctx = init_app_context(settings_path)
+    c = ctx.console
     commands = CollectionOfCommands()
     commands.add_command('', 'show help', lambda: show_help(commands, c))
     commands.add_command('', 'exit remem', lambda: exit(0))

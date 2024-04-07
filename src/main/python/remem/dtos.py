@@ -11,7 +11,7 @@ class Language:
 @dataclass
 class Folder:
     id: int = -1
-    parent_id: int | None = -1
+    parent_id: int | None = None
     name: str = ''
 
 
@@ -20,14 +20,6 @@ class Query:
     id: int = -1
     name: str = ''
     text: str = ''
-
-
-@dataclass
-class Task:
-    id: int = -1
-    card_id: int = -1
-    task_type_id: int = -1
-    task_type_code: str = ''
 
 
 @dataclass
@@ -63,3 +55,18 @@ class CardFillGaps:
 
 
 AnyCard = CardTranslate | CardFillGaps
+
+
+@dataclass
+class Task:
+    id: int = -1
+    card_id: int = -1
+    task_type_id: int = -1
+
+
+@dataclass
+class TaskHistRec:
+    time: int = -1
+    task_id: int = -1
+    mark: float = 0.0
+    note: str = ''

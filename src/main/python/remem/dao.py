@@ -1,9 +1,10 @@
 from sqlite3 import Connection
+from uuid import uuid4
 
 from remem.cache import Cache
 from remem.common import values
 from remem.constants import CardTypes
-from remem.dtos import Folder, CardTranslate, Query, AnyCard, BaseCard
+from remem.dtos import Folder, CardTranslate, Query, AnyCard, BaseCard, CardFillGaps, Task, TaskHistRec
 
 
 def get_last_id(con: Connection) -> int:
@@ -69,8 +70,17 @@ def delete_query(con: Connection, query_id: int) -> None:
     con.execute("""delete from QUERY where id = ?""", [query_id])
 
 
-def insert_card(con: Connection, card: AnyCard) -> int:
+def insert_card(con: Connection, cache: Cache, card: AnyCard) -> int:
     assert con.in_transaction
+
+    card.base.ext_id = str(uuid4())
+    if isinstance(card, CardTranslate):
+        card.base.card_type_id = cache.card_types_si[CardTypes.translate]
+    elif isinstance(card, CardFillGaps):
+        card.base.card_type_id = cache.card_types_si[CardTypes.fill_gaps]
+    else:
+        raise Exception(f'Unexpected type of card: {card}')
+
     con.execute(
         """insert into CARD(ext_id, folder_id, card_type_id) values (:ext_id, :folder_id, :card_type_id)""",
         card.base.__dict__
@@ -119,3 +129,69 @@ def update_card(con: Connection, card: AnyCard) -> None:
 
 def delete_card(con: Connection, card_id: int) -> None:
     con.execute("""delete from CARD where id = ?""", [card_id])
+
+
+def insert_translate_card(
+        con: Connection, cache: Cache,
+        folder_id: int,
+        lang1_id: int, read_only1: int, text1: str, tran1: str,
+        lang2_id: int, read_only2: int, text2: str, tran2: str,
+) -> int:
+    return insert_card(
+        con,
+        cache,
+        CardTranslate(
+            base=BaseCard(folder_id=folder_id),
+            lang1_id=lang1_id,
+            read_only1=read_only1,
+            text1=text1,
+            tran1=tran1,
+            lang2_id=lang2_id,
+            read_only2=read_only2,
+            text2=text2,
+            tran2=tran2,
+        )
+    )
+
+
+def select_tasks_by_ids(con: Connection, task_ids: list[int]) -> list[Task]:
+    task_ids = list(set(task_ids))
+    result = []
+    step = 100
+    for idx in range(0, len(task_ids), step):
+        ids = task_ids[idx:idx + step]
+        task_ids_condition = ' or '.join(['id = ?'] * len(ids))
+        for r in con.execute(f"""select * from TASK where {task_ids_condition}""", ids):
+            result.append(Task(**r))
+    return result
+
+
+def select_task_hist(
+        con: Connection,
+        task_ids: list[int],
+        max_num_of_records_per_task: int
+) -> dict[int, list[TaskHistRec]]:
+    task_ids = list(set(task_ids))
+    result: dict[int, list[TaskHistRec]] = {}
+    step = 100
+    for idx in range(0, len(task_ids), step):
+        ids = task_ids[idx:idx + step]
+        task_ids_condition = ' or '.join(['task_id = ?'] * len(ids))
+        for r in con.execute(
+                f"""
+                    select task_id, time, mark, note from (
+                        select task_id, time, mark, note,
+                            row_number() over (partition by task_id order by time desc) rn
+                        from TASK_HIST
+                        where {task_ids_condition}
+                    )
+                    where rn <= ?
+                    order by task_id, rn
+                """,
+                ids + [max_num_of_records_per_task]
+        ):
+            task_id = r['task_id']
+            if task_id not in result:
+                result[task_id] = []
+            result[task_id].append(TaskHistRec(**r))
+    return result

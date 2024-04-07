@@ -3,7 +3,6 @@ import tkinter as tk
 from ctypes import windll
 from tkinter import ttk
 from typing import Callable
-from uuid import uuid4
 
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
@@ -99,15 +98,9 @@ def cmd_delete_folder_by_id(ctx: AppCtx) -> None:
 
 
 def prepare_card_for_insert(ctx: AppCtx, card: AnyCard) -> None:
-    c, db, cache = ctx.console, ctx.database, ctx.cache
-    card.base.ext_id = str(uuid4())
-    curr_folder_path = cache.get_curr_folder_path()
+    curr_folder_path = ctx.cache.get_curr_folder_path()
     if len(curr_folder_path) > 0:
         card.base.folder_id = curr_folder_path[-1].id
-    if isinstance(card, CardTranslate):
-        card.base.card_type_id = cache.card_types_si['translate']
-    else:
-        raise Exception(f'Unexpected card type: {card}')
 
 
 def cmd_add_card(ctx: AppCtx) -> None:
@@ -121,7 +114,7 @@ def cmd_add_card(ctx: AppCtx) -> None:
             cache.set_card_tran_read_only1(card.read_only1)
             cache.set_card_tran_read_only2(card.read_only2)
         with db.transaction() as tr:
-            insert_card(tr, card)
+            insert_card(tr, cache, card)
         c.info('A card has been saved:')
         c.hint(str(card))
 

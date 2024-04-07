@@ -11,10 +11,10 @@ create table LANGUAGE
     name text not null unique
 ) strict;
 
-insert into LANGUAGE(ext_id, name) VALUES ('629723fb-bf93-45bc-a785-a6184b7a10a3', 'ENG');
-insert into LANGUAGE(ext_id, name) VALUES ('86129ca5-8cf1-4dcf-b152-1ffbbccf193e', 'POL');
-insert into LANGUAGE(ext_id, name) VALUES ('458995d9-0f65-4447-90ff-d03326a4ef67', 'UKR');
-insert into LANGUAGE(ext_id, name) VALUES ('4e54d364-eee7-4a4d-96bd-2684cd3b1060', 'RUS');
+insert into LANGUAGE(id, ext_id, name) VALUES (1, '629723fb-bf93-45bc-a785-a6184b7a10a3', 'ENG');
+insert into LANGUAGE(id, ext_id, name) VALUES (2, '86129ca5-8cf1-4dcf-b152-1ffbbccf193e', 'POL');
+insert into LANGUAGE(id, ext_id, name) VALUES (3, '458995d9-0f65-4447-90ff-d03326a4ef67', 'UKR');
+insert into LANGUAGE(id, ext_id, name) VALUES (4, '4e54d364-eee7-4a4d-96bd-2684cd3b1060', 'RUS');
 
 create table FOLDER
 (
