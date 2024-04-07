@@ -7,6 +7,7 @@ from typing import Tuple
 @dataclass
 class AppSettings:
     database_file: str = 'databases/remem.sqlite'
+    database_backup_dir: str | None = None
     database_schema_script_path: str = 'src/main/resources/schema_v1.sql'
     console_colors_info: Tuple[int, int, int] = (30, 144, 255)
     console_colors_success: Tuple[int, int, int] = (26, 138, 59)

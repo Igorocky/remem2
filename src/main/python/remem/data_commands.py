@@ -1,6 +1,9 @@
 import re
+import sqlite3
 import tkinter as tk
 from ctypes import windll
+from datetime import datetime
+from pathlib import Path
 from tkinter import ttk
 from typing import Callable
 
@@ -268,7 +271,24 @@ def cmd_run_query(ctx: AppCtx) -> None:
 
 
 def cmd_backup_database(ctx: AppCtx) -> None:
-    pass
+    s = ctx.settings
+    curr_db_file_path = Path(s.database_file)
+    curr_db_dir_path = curr_db_file_path.parent
+    curr_db_file_name = curr_db_file_path.stem
+    curr_db_file_ext = curr_db_file_path.suffix
+    backup_dir_path_str = s.database_backup_dir if s.database_backup_dir is not None \
+        else str(curr_db_dir_path) + '/backups'
+    backup_dir_path = Path(backup_dir_path_str)
+    if not backup_dir_path.exists():
+        raise Exception(f'The backup directory doesn\'t exist: {backup_dir_path_str}')
+    curr_time = datetime.now()
+    curr_time_str = curr_time.strftime('%Y_%m_%d__%H_%M_%S')
+    backup_db_file_path = f'{backup_dir_path_str}/{curr_db_file_name}__{curr_time_str}{curr_db_file_ext}'
+    bkp_con = sqlite3.connect(backup_db_file_path)
+    ctx.database.con.backup(bkp_con)
+    bkp_con.close()
+    c = ctx.console
+    print(c.mark_info('A backup saved to ') + backup_db_file_path)
 
 
 def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
@@ -290,3 +310,5 @@ def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     add_command('Queries', 'edit query', cmd_edit_query)
     add_command('Queries', 'run query', cmd_run_query)
     add_command('Queries', 'delete query', cmd_delete_query)
+
+    add_command('Database', 'backup database', cmd_backup_database)
