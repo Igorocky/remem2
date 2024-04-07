@@ -273,7 +273,7 @@ def cmd_run_query(ctx: AppCtx) -> None:
 def cmd_backup_database(ctx: AppCtx) -> None:
     s = ctx.settings
     curr_db_file_path = Path(s.database_file)
-    curr_db_dir_path = curr_db_file_path.parent
+    curr_db_dir_path = curr_db_file_path.absolute().parent
     curr_db_file_name = curr_db_file_path.stem
     curr_db_file_ext = curr_db_file_path.suffix
     backup_dir_path_str = s.database_backup_dir if s.database_backup_dir is not None \
