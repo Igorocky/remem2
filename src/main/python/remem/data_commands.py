@@ -267,6 +267,10 @@ def cmd_run_query(ctx: AppCtx) -> None:
     print('-' * len(header))
 
 
+def cmd_backup_database(ctx: AppCtx) -> None:
+    pass
+
+
 def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     def add_command(cat: str, name: str, cmd: Callable[[AppCtx], None]) -> None:
         commands.add_command(cat, name, lambda: cmd(ctx))

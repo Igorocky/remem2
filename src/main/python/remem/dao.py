@@ -166,6 +166,14 @@ def select_tasks_by_ids(con: Connection, task_ids: list[int]) -> list[Task]:
     return result
 
 
+def insert_task_hist(con: Connection, task_hist: TaskHistRec) -> int:
+    con.execute(
+        """insert into main.TASK_HIST(task_id, mark, note) values (:task_id, :mark, :note)""",
+        task_hist.__dict__
+    )
+    return get_last_id(con)
+
+
 def select_task_hist(
         con: Connection,
         task_ids: list[int],

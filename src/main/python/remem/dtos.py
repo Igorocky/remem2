@@ -66,7 +66,7 @@ class Task:
 
 @dataclass
 class TaskHistRec:
-    time: int = -1
+    time: int | None = None
     task_id: int = -1
     mark: float = 0.0
     note: str = ''

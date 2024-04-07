@@ -1,3 +1,4 @@
+import os
 import re
 import traceback
 from typing import Optional, Tuple
@@ -46,6 +47,10 @@ def select_single_option(options: list[str]) -> Optional[int]:
         except ValueError:
             print()
             pass
+
+
+def clear_screen() -> None:
+    os.system('cls')
 
 
 class Console:
