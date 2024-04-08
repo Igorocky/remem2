@@ -2,6 +2,7 @@ import sys
 
 sys.path.append('src/main/python')
 
+from remem.repeat.repeat import add_repeat_commands
 from remem.app_context import init_app_context
 from remem.commands import CollectionOfCommands, Cmd
 from remem.console import Console, select_single_option
@@ -13,7 +14,7 @@ def exit_remem() -> None:
 
 
 def show_help(all_commands: CollectionOfCommands, c: Console) -> None:
-    def print_commands(cmds: list[Cmd], prefix:str) -> None:
+    def print_commands(cmds: list[Cmd], prefix: str) -> None:
         for cmd in cmds:
             if cmd.descr == '':
                 print(prefix + cmd.name)
@@ -37,6 +38,7 @@ def main() -> None:
     commands = CollectionOfCommands()
     commands.add_command('', 'show help', lambda: show_help(commands, c))
     commands.add_command('', 'exit remem', lambda: exit(0))
+    add_repeat_commands(ctx, commands)
     add_data_commands(ctx, commands)
 
     while True:

@@ -1,18 +1,16 @@
+import random
+import re
 from dataclasses import dataclass
-from enum import Enum
+from typing import Callable
 from unittest import TestCase
 
 from remem.app_context import AppCtx
+from remem.commands import CollectionOfCommands
 from remem.constants import TaskTypes
 from remem.dao import select_tasks_by_ids, select_task_hist
 from remem.dtos import Task, TaskHistRec
+from remem.repeat import TaskContinuation
 from remem.repeat.repeat_translate_card import repeat_translate_task
-
-
-class TaskContinuation(Enum):
-    EXIT = 1
-    CONTINUE_TASK = 2
-    NEXT_TASK = 3
 
 
 @dataclass
@@ -20,6 +18,16 @@ class TaskWithHist:
     task: Task
     hist: list[TaskHistRec]
     last_repeated: int
+
+
+def select_random_tasks_from_beginning(sorted_tasks: list[TaskWithHist], num_of_tasks: int) -> list[TaskWithHist]:
+    src = sorted_tasks.copy()
+    num_of_tasks = min(num_of_tasks, len(sorted_tasks))
+    dst: list[TaskWithHist] = []
+    while len(dst) < num_of_tasks:
+        idx = random.randint(0, min(5, len(src) - 1))
+        dst.append(src.pop(idx))
+    return dst
 
 
 def get_bucket_number(hist: list[TaskHistRec], max_num: int = 5) -> int:
@@ -77,13 +85,18 @@ def select_tasks_to_repeat(buckets: list[list[TaskWithHist]]) -> list[TaskWithHi
         b.sort(key=lambda t: t.last_repeated)
         if i == 0:
             b.reverse()
-        res = res + b[0:len(buckets) - i]
+        res = res + select_random_tasks_from_beginning(b, num_of_tasks=len(buckets) - i)
 
     return res
 
 
 def repeat_tasks(ctx: AppCtx, task_ids: list[int]) -> None:
-    pass
+    tasks = select_tasks_to_repeat(load_buckets(ctx, task_ids))
+    act = TaskContinuation.NEXT_TASK
+    while act != TaskContinuation.EXIT:
+        if len(tasks) == 0:
+            tasks = select_tasks_to_repeat(load_buckets(ctx, task_ids))
+        act = repeat_task(ctx, tasks.pop(0).task)
 
 
 def repeat_task(ctx: AppCtx, task: Task) -> TaskContinuation:
@@ -94,3 +107,16 @@ def repeat_task(ctx: AppCtx, task: Task) -> TaskContinuation:
             return repeat_translate_task(ctx, task)
         case _:
             raise Exception(f'Unexpected type of task: {task}')
+
+
+def cmd_repeat_tasks_by_ids(ctx: AppCtx) -> None:
+    inp = ctx.console.input('Space separated list of tasks to repeat: ')
+    task_ids = [int(m.group(1)) for m in re.finditer(r'(\S+)', inp)]
+    repeat_tasks(ctx, task_ids)
+
+
+def add_repeat_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
+    def add_command(cat: str, name: str, cmd: Callable[[AppCtx], None]) -> None:
+        commands.add_command(cat, name, lambda: cmd(ctx))
+
+    add_command('Repeat', 'repeat tasks by ids', cmd_repeat_tasks_by_ids)

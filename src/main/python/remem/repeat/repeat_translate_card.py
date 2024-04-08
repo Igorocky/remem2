@@ -6,7 +6,7 @@ from remem.console import Console, clear_screen
 from remem.constants import TaskTypes
 from remem.dao import select_card, insert_task_hist
 from remem.dtos import Task, CardTranslate, TaskHistRec
-from remem.repeat.repeat import TaskContinuation
+from remem.repeat import TaskContinuation
 
 
 @dataclass
@@ -124,9 +124,10 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
 def repeat_translate_task(ctx: AppCtx, task: Task) -> TaskContinuation:
     state = make_initial_state(ctx, task)
     while True:
+        clear_screen()
         render_state(ctx, state)
         match process_user_input(ctx, state, input()):
             case TaskContinuation.CONTINUE_TASK:
-                clear_screen()
+                pass
             case act:
                 return act
