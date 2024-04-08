@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 
 from remem.app_context import AppCtx
 from remem.cache import Cache
@@ -7,6 +6,7 @@ from remem.console import Console, clear_screen
 from remem.constants import TaskTypes
 from remem.dao import select_card, insert_task_hist
 from remem.dtos import Task, CardTranslate, TaskHistRec
+from remem.repeat.repeat import TaskContinuation
 
 
 @dataclass
@@ -24,11 +24,6 @@ class TranslateTaskState:
     dst: CardTranslateSide
     first_user_translation: None | str = None
     correct_translation_entered: bool = False
-
-
-class TranslateTaskAction(Enum):
-    EXIT = 1
-    CONTINUE = 2
 
 
 def get_card_translate_side(cache: Cache, card: CardTranslate, dir12: bool, src: bool) -> CardTranslateSide:
@@ -68,58 +63,70 @@ def process_user_input(
         ctx: AppCtx,
         state: TranslateTaskState,
         user_input: str
-) -> TranslateTaskAction:
+) -> TaskContinuation:
     c = ctx.console
     con = ctx.database.con
     if user_input.startswith('`'):
         cmd = user_input[1:]
         match cmd:
             case 'e':
-                return TranslateTaskAction.EXIT
+                return TaskContinuation.EXIT
             case 'a':
                 if state.first_user_translation is None:
                     insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=''))
                     state.first_user_translation = ''
                 print('Translation:\n')
-                print(state.dst.text)
+                print(state.dst.text + '\n')
                 ask_to_press_enter(c)
-                return TranslateTaskAction.CONTINUE
+                return TaskContinuation.CONTINUE_TASK
             case _:
                 c.error(f'Unknown command "{cmd}"')
                 ask_to_press_enter(c)
-                return TranslateTaskAction.CONTINUE
-    if user_input != state.dst.text:
+                return TaskContinuation.CONTINUE_TASK
+    if state.dst.read_only:
+        c.info('The translation is:\n')
+        print(state.dst.text + '\n')
+        if state.dst.tran != '':
+            print(c.mark_info('Transcription: ') + state.dst.tran + '\n')
+        mark = float(c.input('Your mark: '))
+        mark = min(max(0.0, mark), 1.0)
+        insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
+        state.first_user_translation = ''
+        return TaskContinuation.NEXT_TASK
+    elif user_input != state.dst.text:
         if state.first_user_translation is None:
             insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=user_input))
             state.first_user_translation = user_input
         c.error('X')
         ask_to_press_enter(c)
-        return TranslateTaskAction.CONTINUE
+        return TaskContinuation.CONTINUE_TASK
     else:
         if state.first_user_translation is None:
             insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=1.0, note=user_input))
             state.first_user_translation = user_input
         c.success('V')
+        if state.dst.tran != '':
+            print(c.mark_info('Transcription: ') + state.dst.tran + '\n')
         ask_to_press_enter(c)
-        return TranslateTaskAction.EXIT
+        return TaskContinuation.NEXT_TASK
 
 
 def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
     c = ctx.console
     c.hint(f'a - show answer       e - exit')
-    if state.src.read_only:
+    if state.dst.read_only:
         print(c.mark_prompt(f'Recall translation to {state.dst.lang_str} for:'))
     else:
         print(c.mark_prompt(f'Write translation to {state.dst.lang_str} for:'))
     print(state.src.text)
 
 
-def repeat_translate_task(ctx: AppCtx, task: Task) -> None:
+def repeat_translate_task(ctx: AppCtx, task: Task) -> TaskContinuation:
     state = make_initial_state(ctx, task)
     while True:
         render_state(ctx, state)
         match process_user_input(ctx, state, input()):
-            case TranslateTaskAction.CONTINUE:
+            case TaskContinuation.CONTINUE_TASK:
                 clear_screen()
-            case TranslateTaskAction.EXIT:
-                return
+            case act:
+                return act
