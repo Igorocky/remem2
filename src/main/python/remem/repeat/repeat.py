@@ -1,12 +1,11 @@
 import random
-import re
 from dataclasses import dataclass
 from typing import Callable
 from unittest import TestCase
 
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
-from remem.console import clear_screen
+from remem.console import clear_screen, select_single_option
 from remem.constants import TaskTypes
 from remem.dao import select_tasks_by_ids, select_task_hist
 from remem.dtos import Task, TaskHistRec
@@ -128,9 +127,51 @@ def repeat_task(ctx: AppCtx, task: Task) -> TaskContinuation:
             raise Exception(f'Unexpected type of task: {task}')
 
 
-def cmd_repeat_tasks_by_ids(ctx: AppCtx) -> None:
-    inp = ctx.console.input('Space separated list of tasks to repeat: ')
-    task_ids = [int(m.group(1)) for m in re.finditer(r'(\S+)', inp)]
+def cmd_repeat_tasks(ctx: AppCtx) -> None:
+    c = ctx.console
+    db = ctx.database
+    cache = ctx.cache
+    folder_id = int(c.input('Folder id: ').strip())
+    available_task_types = [cache.task_types_is[r['task_type_id']] for r in db.con.execute(
+        """
+            with recursive folders(id) as (
+                select id from FOLDER where id = ?
+                union all
+                select ch.id
+                from folders pr inner join FOLDER ch on pr.id = ch.parent_id
+            )
+            select distinct t.task_type_id
+            from folders f
+                inner join CARD c on f.id = c.folder_id
+                inner join TASK t on c.id = t.card_id
+        """,
+        [folder_id]
+    )]
+    if len(available_task_types) == 0:
+        c.error('No tasks found in the specified folder')
+        return
+    available_task_types.sort()
+    c.prompt('Select task type:')
+    task_type_idx = select_single_option(available_task_types)
+    if task_type_idx is None:
+        return
+    task_type_id = cache.task_types_si[available_task_types[task_type_idx]]
+    task_ids = [r['id'] for r in db.con.execute(
+        """
+            with recursive folders(id) as (
+                select id from FOLDER where id = :folder_id
+                union all
+                select ch.id
+                from folders pr inner join FOLDER ch on pr.id = ch.parent_id
+            )
+            select t.id
+            from folders f
+                inner join CARD c on f.id = c.folder_id
+                inner join TASK t on c.id = t.card_id
+            where t.task_type_id = :task_type_id
+        """,
+        dict(folder_id=folder_id, task_type_id=task_type_id)
+    )]
     repeat_tasks(ctx, task_ids)
 
 
@@ -138,4 +179,4 @@ def add_repeat_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     def add_command(cat: str, name: str, cmd: Callable[[AppCtx], None]) -> None:
         commands.add_command(cat, name, lambda: cmd(ctx))
 
-    add_command('Repeat', 'repeat tasks by ids', cmd_repeat_tasks_by_ids)
+    add_command('Repeat', 'repeat tasks', cmd_repeat_tasks)
