@@ -59,6 +59,18 @@ def ask_to_press_enter(c: Console) -> None:
     input(c.mark_prompt('\nPress Enter'))
 
 
+def read_mark(c: Console) -> float:
+    while True:
+        try:
+            inp = c.input('Your mark [1.0]: ')
+            if inp.strip() == '':
+                return 1.0
+            mark = float(inp)
+            return min(max(0.0, mark), 1.0)
+        except ValueError:
+            pass
+
+
 def process_user_input(
         ctx: AppCtx,
         state: TranslateTaskState,
@@ -88,10 +100,12 @@ def process_user_input(
         print(state.dst.text + '\n')
         if state.dst.tran != '':
             print(c.mark_info('Transcription: ') + state.dst.tran + '\n')
-        mark = float(c.input('Your mark: '))
-        mark = min(max(0.0, mark), 1.0)
-        insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
-        state.first_user_translation = ''
+        if state.first_user_translation is None:
+            mark = read_mark(c)
+            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
+            state.first_user_translation = ''
+        else:
+            ask_to_press_enter(c)
         return TaskContinuation.NEXT_TASK
     elif user_input != state.dst.text:
         if state.first_user_translation is None:

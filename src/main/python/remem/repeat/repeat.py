@@ -90,7 +90,7 @@ def select_tasks_to_repeat(buckets: list[list[TaskWithHist]]) -> list[TaskWithHi
         res = (res +
                select_random_tasks_from_beginning(
                    b,
-                   num_of_tasks=buckets_len - i if i < buckets_len - 1 else (1 + buckets_len) * buckets_len / 2
+                   num_of_tasks=buckets_len - i if i < buckets_len - 1 else int((1 + buckets_len) * buckets_len / 2)
                ))
 
     return res
