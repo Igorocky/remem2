@@ -113,12 +113,12 @@ def process_user_input(
 
 def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
     c = ctx.console
-    c.hint(f'a - show answer       e - exit')
+    c.hint(f'a - show answer       e - exit\n')
     if state.dst.read_only:
-        print(c.mark_prompt(f'Recall translation to {state.dst.lang_str} for:'))
+        print(c.mark_prompt(f'Recall translation to {state.dst.lang_str} for:\n'))
     else:
-        print(c.mark_prompt(f'Write translation to {state.dst.lang_str} for:'))
-    print(state.src.text)
+        print(c.mark_prompt(f'Write translation to {state.dst.lang_str} for:\n'))
+    print(state.src.text + '\n')
 
 
 def repeat_translate_task(ctx: AppCtx, task: Task) -> TaskContinuation:

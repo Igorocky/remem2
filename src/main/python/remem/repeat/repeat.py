@@ -6,6 +6,7 @@ from unittest import TestCase
 
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
+from remem.console import clear_screen
 from remem.constants import TaskTypes
 from remem.dao import select_tasks_by_ids, select_task_hist
 from remem.dtos import Task, TaskHistRec
@@ -73,29 +74,47 @@ def load_buckets(ctx: AppCtx, task_ids: list[int]) -> list[list[TaskWithHist]]:
         last_repeated=none_to_zero(hist[t.id][0].time) if t.id in hist else 0
     ) for t in select_tasks_by_ids(db.con, task_ids)]
     num_of_buckets = 4
-    buckets: list[list[TaskWithHist]] = [[]] * num_of_buckets
+    buckets: list[list[TaskWithHist]] = [[] for _ in range(0, num_of_buckets)]
     for t in tasks:
         buckets[get_bucket_number(t.hist, max_num=num_of_buckets - 1)].append(t)
     return buckets
 
 
 def select_tasks_to_repeat(buckets: list[list[TaskWithHist]]) -> list[TaskWithHist]:
+    buckets_len = len(buckets)
     res: list[TaskWithHist] = []
     for i, b in enumerate(buckets):
         b.sort(key=lambda t: t.last_repeated)
         if i == 0:
             b.reverse()
-        res = res + select_random_tasks_from_beginning(b, num_of_tasks=len(buckets) - i)
+        res = (res +
+               select_random_tasks_from_beginning(
+                   b,
+                   num_of_tasks=buckets_len - i if i < buckets_len - 1 else (1 + buckets_len) * buckets_len / 2
+               ))
 
     return res
 
 
+def print_stats(ctx: AppCtx, buckets: list[list[TaskWithHist]]) -> None:
+    ctx.console.info('Bucket counts:\n')
+    for i, b in enumerate(buckets):
+        print(f'{i} - {len(b)}')
+
+
 def repeat_tasks(ctx: AppCtx, task_ids: list[int]) -> None:
-    tasks = select_tasks_to_repeat(load_buckets(ctx, task_ids))
+    def load_tasks_to_repeat() -> list[TaskWithHist]:
+        buckets = load_buckets(ctx, task_ids)
+        clear_screen()
+        print_stats(ctx, buckets)
+        ctx.console.input('\nPress Enter')
+        return select_tasks_to_repeat(buckets)
+
+    tasks = load_tasks_to_repeat()
     act = TaskContinuation.NEXT_TASK
     while act != TaskContinuation.EXIT:
         if len(tasks) == 0:
-            tasks = select_tasks_to_repeat(load_buckets(ctx, task_ids))
+            tasks = load_tasks_to_repeat()
         act = repeat_task(ctx, tasks.pop(0).task)
 
 
