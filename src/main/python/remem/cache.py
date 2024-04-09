@@ -90,6 +90,10 @@ class Cache:
         self._set_int(Cache._sn_curr_folder, folder_id)
         self._cur_folder_path = [] if folder_id is None else select_folder_path(self._db.con, folder_id)
 
+    def refresh_curr_folder(self) -> None:
+        cur_folder_id = self._get_int(Cache._sn_curr_folder)
+        self.set_curr_folder(cur_folder_id)
+
     _sn_card_tran_lang1_id = 'card_tran_lang1_id'
 
     def get_card_tran_lang1_id(self) -> int:

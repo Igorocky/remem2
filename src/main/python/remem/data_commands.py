@@ -83,6 +83,7 @@ def cmd_move_folder(ctx: AppCtx) -> None:
             return
         folder_to_move.parent_id = folder_to_move_to.id
     update_folder(db.con, folder_to_move)
+    ctx.cache.refresh_curr_folder()
     c.info(f'The folder "{folder_to_move.name}" was moved.')
 
 
