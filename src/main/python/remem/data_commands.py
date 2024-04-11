@@ -143,6 +143,11 @@ def cmd_add_card(ctx: AppCtx) -> None:
 def cmd_edit_card_by_id(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
     card_id = int(c.input('Enter id of the card to edit: '))
+    edit_card_by_id(ctx, card_id)
+
+
+def edit_card_by_id(ctx: AppCtx, card_id: int) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
     card = select_card(db.con, cache, card_id)
     if card is None:
         c.error(f'The card with id of {card_id} doesn\'t exist.')

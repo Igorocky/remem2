@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Callable, Tuple
 
 from remem.app_context import AppCtx
 from remem.cache import Cache
@@ -73,16 +74,26 @@ def read_mark(c: Console) -> float:
 
 def process_user_input(
         ctx: AppCtx,
+        ext_commands: dict[str, Tuple[str, Callable[[], None]]],
         state: TranslateTaskState,
         user_input: str
 ) -> TaskContinuation:
     c = ctx.console
     con = ctx.database.con
+    if user_input.startswith('``'):
+        cmd = user_input[2:]
+        if cmd in ext_commands:
+            ext_commands[cmd][1]()
+            return TaskContinuation.CONTINUE_TASK
+        else:
+            c.error(f'Unknown command "{cmd}"')
+            ask_to_press_enter(c)
+            return TaskContinuation.CONTINUE_TASK
     if user_input.startswith('`'):
         cmd = user_input[1:]
         match cmd:
-            case 'e':
-                return TaskContinuation.EXIT
+            case 'c':
+                return TaskContinuation.CANCEL
             case 'a':
                 if state.first_user_translation is None:
                     insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=''))
@@ -125,9 +136,10 @@ def process_user_input(
         return TaskContinuation.NEXT_TASK
 
 
-def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
+def render_state(ctx: AppCtx, ext_commands: dict[str, Tuple[str, Callable[[], None]]], state: TranslateTaskState) -> None:
     c = ctx.console
-    c.hint(f'a - show answer       e - exit\n')
+    ext_commands_str = '    '.join([f'``{key} - {descr}' for key, (descr, _) in ext_commands.items()])
+    c.hint(f'`a - show answer    `c - cancel    ' + ext_commands_str + '\n')
     if state.dst.read_only:
         print(c.mark_prompt(f'Recall translation to {state.dst.lang_str} for:\n'))
     else:
@@ -135,12 +147,12 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
     print(state.src.text + '\n')
 
 
-def repeat_translate_task(ctx: AppCtx, task: Task) -> TaskContinuation:
+def repeat_translate_task(ctx: AppCtx, ext_commands: dict[str, Tuple[str, Callable[[], None]]], task: Task) -> TaskContinuation:
     state = make_initial_state(ctx, task)
     while True:
         clear_screen()
-        render_state(ctx, state)
-        match process_user_input(ctx, state, input()):
+        render_state(ctx, ext_commands, state)
+        match process_user_input(ctx, ext_commands, state, input()):
             case TaskContinuation.CONTINUE_TASK:
                 pass
             case act:

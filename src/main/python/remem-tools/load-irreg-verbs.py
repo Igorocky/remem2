@@ -13,7 +13,7 @@ def parse_words(file_path: str) -> list[Tuple[str, str, str, str]]:
     form2 = [elem.text for elem in root.findall(".//td[2]/span")]
     form3 = [elem.text for elem in root.findall(".//td[3]/span")]
     translations = [elem.text for elem in root.findall(".//td[4]/span")]
-    return [words for words in zip(translations, form1, form2, form3)]
+    return [(str(tr), str(f1), str(f2), str(f3)) for tr, f1, f2, f3 in zip(translations, form1, form2, form3)]
 
 
 def fill_database(words: list[Tuple[str, str, str, str]]) -> None:

@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Tuple
 from unittest import TestCase
 
 from remem.app_context import AppCtx
@@ -8,6 +8,7 @@ from remem.commands import CollectionOfCommands
 from remem.console import clear_screen, select_single_option
 from remem.constants import TaskTypes
 from remem.dao import select_tasks_by_ids, select_task_hist
+from remem.data_commands import edit_card_by_id
 from remem.dtos import Task, TaskHistRec
 from remem.repeat import TaskContinuation
 from remem.repeat.repeat_translate_card import repeat_translate_task
@@ -111,18 +112,24 @@ def repeat_tasks(ctx: AppCtx, task_ids: list[int]) -> None:
 
     tasks = load_tasks_to_repeat()
     act = TaskContinuation.NEXT_TASK
-    while act != TaskContinuation.EXIT:
+    while act != TaskContinuation.CANCEL:
         if len(tasks) == 0:
             tasks = load_tasks_to_repeat()
         act = repeat_task(ctx, tasks.pop(0).task)
 
 
 def repeat_task(ctx: AppCtx, task: Task) -> TaskContinuation:
+    def edit_card() -> None:
+        edit_card_by_id(ctx, task.card_id)
+
+    ext_commands: dict[str, Tuple[str, Callable[[], None]]] = {
+        'e': ('edit card', edit_card)
+    }
     match ctx.cache.task_types_is[task.task_type_id]:
         case TaskTypes.translate_12:
-            return repeat_translate_task(ctx, task)
+            return repeat_translate_task(ctx, ext_commands, task)
         case TaskTypes.translate_21:
-            return repeat_translate_task(ctx, task)
+            return repeat_translate_task(ctx, ext_commands, task)
         case _:
             raise Exception(f'Unexpected type of task: {task}')
 
