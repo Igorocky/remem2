@@ -190,13 +190,13 @@ def render_card_translate(
         [
             Combobox(values=langs, width=lang_width, var=lang1_str),
             Checkbutton(text='read only', var=read_only1),
-            Entry(width=50, var=text1),
+            Entry(width=100, var=text1),
             Entry(width=20, var=tran1),
         ],
         [
             Combobox(values=langs, width=lang_width, var=lang2_str),
             Checkbutton(text='read only', var=read_only2),
-            Entry(width=50, var=text2),
+            Entry(width=100, var=text2),
             Entry(width=20, var=tran2),
         ],
         [
