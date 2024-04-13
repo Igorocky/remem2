@@ -1,17 +1,17 @@
 import random
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 from typing import Callable, TypeVar
 from unittest import TestCase
 
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
-from remem.console import clear_screen, select_single_option
+from remem.console import select_single_option
 from remem.constants import TaskTypes
 from remem.dao import select_tasks_by_ids, select_task_hist
 from remem.dtos import Task, TaskHistRec
 from remem.repeat import TaskContinuation
-from remem.repeat.repeat_translate_card import repeat_translate_task
+from remem.repeat.repeat_translate_card import repeat_translate_task, ask_to_press_enter
 
 
 @dataclass
@@ -46,7 +46,8 @@ def select_random_elems_from_beginning(sorted_list: list[T], num_of_elems: int) 
     return dst
 
 
-_num_of_buckets = 4
+_bucket_delay_minutes = [2, 5, 15, 30]
+_num_of_buckets = len(_bucket_delay_minutes)
 
 
 def get_bucket_number(hist: list[TaskHistRec], max_num: int = _num_of_buckets - 1) -> int:
@@ -97,14 +98,11 @@ def load_buckets(ctx: AppCtx, task_ids: list[int]) -> list[list[TaskWithHist]]:
     return buckets
 
 
-bucket_delay_minutes = [2, 5, 15, 30]
-
-
 def select_tasks_to_repeat(buckets: list[list[TaskWithHist]]) -> list[TaskWithHist]:
     buckets_len = len(buckets)
     res: list[TaskWithHist] = []
     for i, b in enumerate(buckets):
-        min_delay_sec = (bucket_delay_minutes[i] if i < len(buckets) else 0) * 60
+        min_delay_sec = _bucket_delay_minutes[i] * 60
         curr_time_sec = int(time.time())
         b = [t for t in b if curr_time_sec - t.last_repeated > min_delay_sec]
         b.sort(key=lambda t: t.last_repeated)
@@ -116,40 +114,40 @@ def select_tasks_to_repeat(buckets: list[list[TaskWithHist]]) -> list[TaskWithHi
                    num_of_elems=buckets_len - i if i < buckets_len - 1 else int((1 + buckets_len) * buckets_len / 2)
                ))
     res.sort(key=lambda t: t.last_repeated)
-    if len(res) == 0:
-        buckets[-1].sort(key=lambda t: t.last_repeated)
-        res = select_random_elems_from_beginning(buckets[-1], num_of_elems=1)
+    idx = 1
+    while len(res) == 0:
+        buckets[-idx].sort(key=lambda t: t.last_repeated)
+        res = select_random_elems_from_beginning(buckets[-idx], num_of_elems=1)
+        idx = idx + 1
     return res
 
 
-def print_stats(ctx: AppCtx, buckets: list[list[TaskWithHist]]) -> None:
+def print_stats(ctx: AppCtx, task_ids: list[int]) -> None:
+    buckets = load_buckets(ctx, task_ids)
     ctx.console.info('Bucket counts:\n')
     for i, b in enumerate(buckets):
         print(f'{i} - {len(b)}')
+    ask_to_press_enter(ctx.console)
 
 
 def repeat_tasks(ctx: AppCtx, task_ids: list[int]) -> None:
     def get_next_tasks_to_repeat() -> list[TaskWithHist]:
-        buckets = load_buckets(ctx, task_ids)
-        clear_screen()
-        print_stats(ctx, buckets)
-        ctx.console.input('\nPress Enter')
-        return select_tasks_to_repeat(buckets)
+        return select_tasks_to_repeat(load_buckets(ctx, task_ids))
 
     tasks = get_next_tasks_to_repeat()
     act = TaskContinuation.NEXT_TASK
     while act != TaskContinuation.EXIT:
         if len(tasks) == 0:
             tasks = get_next_tasks_to_repeat()
-        act = repeat_task(ctx, tasks.pop(0).task)
+        act = repeat_task(ctx, tasks.pop(0).task, print_stats=lambda: print_stats(ctx, task_ids))
 
 
-def repeat_task(ctx: AppCtx, task: Task) -> TaskContinuation:
+def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
     match ctx.cache.task_types_is[task.task_type_id]:
         case TaskTypes.translate_12:
-            return repeat_translate_task(ctx, task)
+            return repeat_translate_task(ctx, task, print_stats)
         case TaskTypes.translate_21:
-            return repeat_translate_task(ctx, task)
+            return repeat_translate_task(ctx, task, print_stats)
         case _:
             raise Exception(f'Unexpected type of task: {task}')
 

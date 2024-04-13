@@ -1,5 +1,6 @@
 import dataclasses
 from dataclasses import dataclass
+from typing import Callable
 
 from remem.app_context import AppCtx
 from remem.cache import Cache
@@ -31,6 +32,7 @@ class TranslateTaskState:
     enter_mark: bool = False
     show_answer: bool = False
     edit_card: bool = False
+    print_stats: bool = False
     err_msg: str | None = None
     task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK
 
@@ -65,7 +67,7 @@ def make_initial_state(ctx: AppCtx, task: Task) -> TranslateTaskState:
 
 
 def ask_to_press_enter(c: Console) -> None:
-    input(c.mark_prompt('\nPress Enter'))
+    c.input('\nPress Enter')
 
 
 def read_mark(c: Console) -> float:
@@ -84,7 +86,7 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
     c = ctx.console
 
     def rnd_commands() -> None:
-        c.hint(f'a - show answer    e - exit    u - update card\n')
+        c.hint(f'a - show answer    e - exit    u - update card    s - show statistics\n')
 
     def rnd_question() -> None:
         if state.dst.read_only:
@@ -148,6 +150,7 @@ def process_user_input(
             enter_mark: bool = False,
             show_answer: bool = False,
             edit_card: bool = False,
+            print_stats: bool = False,
             err_msg: str | None = None,
             task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK,
     ) -> TranslateTaskState:
@@ -160,6 +163,7 @@ def process_user_input(
             enter_mark=enter_mark,
             show_answer=show_answer,
             edit_card=edit_card,
+            print_stats=print_stats,
             err_msg=err_msg,
             task_continuation=task_continuation
         )
@@ -188,6 +192,8 @@ def process_user_input(
                     return update_state(show_answer=True)
             case 'u':
                 return update_state(edit_card=True)
+            case 's':
+                return update_state(print_stats=True)
             case _:
                 return update_state(err_msg=f'Unknown command "{cmd}"')
     if state.correct_translation_entered:
@@ -213,7 +219,7 @@ def process_user_input(
         return update_state(correctness_indicator=True, correct_translation_entered=True)
 
 
-def repeat_translate_task(ctx: AppCtx, task: Task) -> TaskContinuation:
+def repeat_translate_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
     state = make_initial_state(ctx, task)
     while True:
         clear_screen()
@@ -222,6 +228,10 @@ def repeat_translate_task(ctx: AppCtx, task: Task) -> TaskContinuation:
         match state.task_continuation:
             case TaskContinuation.CONTINUE_TASK:
                 if state.edit_card:
+                    state.edit_card = False
                     edit_card_by_id(ctx, state.task.card_id)
+                if state.print_stats:
+                    state.print_stats = False
+                    print_stats()
             case act:
                 return act
