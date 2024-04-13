@@ -119,17 +119,11 @@ def repeat_tasks(ctx: AppCtx, task_ids: list[int]) -> None:
 
 
 def repeat_task(ctx: AppCtx, task: Task) -> TaskContinuation:
-    def edit_card() -> None:
-        edit_card_by_id(ctx, task.card_id)
-
-    ext_commands: dict[str, Tuple[str, Callable[[], None]]] = {
-        'e': ('edit card', edit_card)
-    }
     match ctx.cache.task_types_is[task.task_type_id]:
         case TaskTypes.translate_12:
-            return repeat_translate_task(ctx, ext_commands, task)
+            return repeat_translate_task(ctx, task)
         case TaskTypes.translate_21:
-            return repeat_translate_task(ctx, ext_commands, task)
+            return repeat_translate_task(ctx, task)
         case _:
             raise Exception(f'Unexpected type of task: {task}')
 
