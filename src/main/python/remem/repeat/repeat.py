@@ -138,7 +138,7 @@ def repeat_tasks(ctx: AppCtx, task_ids: list[int]) -> None:
 
     tasks = get_next_tasks_to_repeat()
     act = TaskContinuation.NEXT_TASK
-    while act != TaskContinuation.CANCEL:
+    while act != TaskContinuation.EXIT:
         if len(tasks) == 0:
             tasks = get_next_tasks_to_repeat()
         act = repeat_task(ctx, tasks.pop(0).task)

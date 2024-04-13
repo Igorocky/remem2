@@ -84,7 +84,7 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
     c = ctx.console
 
     def rnd_commands() -> None:
-        c.hint(f'a - show answer    c - cancel    e - edit card')
+        c.hint(f'a - show answer    e - exit    u - update card\n')
 
     def rnd_question() -> None:
         if state.dst.read_only:
@@ -97,7 +97,8 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
         if (state.show_answer
                 or state.dst.read_only and state.first_user_translation is not None
                 or state.correct_translation_entered):
-            c.info('The translation is:\n')
+            if not state.dst.read_only and state.first_user_translation != state.dst.text:
+                c.info('The translation is:\n')
             print(state.dst.text + '\n')
             if state.dst.tran != '':
                 print(c.mark_info('Transcription: ') + state.dst.tran + '\n')
@@ -111,7 +112,7 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
             case True:
                 print(c.mark_success('V') + '\n')
             case False:
-                print(c.mark_success('X') + '\n')
+                print(c.mark_error('X') + '\n')
 
     def rnd_err_msg() -> None:
         if state.err_msg is not None:
@@ -119,9 +120,11 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
 
     def rnd_prompt() -> None:
         if state.enter_mark:
-            c.prompt('Enter mark [1.0]: ')
+            print(c.mark_prompt('Enter mark [1.0]: '), end='')
         elif state.correct_translation_entered:
-            c.prompt('Press Enter to go to the next task: ')
+            print(c.mark_prompt('Press Enter to go to the next task: '), end='')
+        elif state.show_answer:
+            print(c.mark_prompt('Press Enter to hide the answer: '), end='')
 
     rnd_commands()
     rnd_question()
@@ -175,15 +178,15 @@ def process_user_input(
     if user_input.startswith('`'):
         cmd = user_input[1:]
         match cmd:
-            case 'c':
-                return update_state(task_continuation=TaskContinuation.CANCEL)
+            case 'e':
+                return update_state(task_continuation=TaskContinuation.EXIT)
             case 'a':
                 if state.first_user_translation is None:
                     insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=''))
                     return update_state(first_user_translation='', show_answer=True)
                 else:
                     return update_state(show_answer=True)
-            case 'e':
+            case 'u':
                 return update_state(edit_card=True)
             case _:
                 return update_state(err_msg=f'Unknown command "{cmd}"')
@@ -201,7 +204,7 @@ def process_user_input(
         if state.first_user_translation is None:
             insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=user_input))
             return update_state(first_user_translation=user_input, correctness_indicator=False)
-        return update_state(correctness_indicator=False)
+        return update_state(correctness_indicator=False if user_input != '' else None)
     else:
         if state.first_user_translation is None:
             insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=1.0, note=user_input))
