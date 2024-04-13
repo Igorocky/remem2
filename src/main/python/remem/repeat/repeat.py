@@ -116,15 +116,18 @@ def select_tasks_to_repeat(buckets: list[list[TaskWithHist]]) -> list[TaskWithHi
     res.sort(key=lambda t: t.last_repeated)
     idx = 1
     while len(res) == 0:
-        buckets[-idx].sort(key=lambda t: t.last_repeated)
-        res = select_random_elems_from_beginning(buckets[-idx], num_of_elems=1)
+        bucket = buckets[-idx]
+        bucket.sort(key=lambda t: t.last_repeated)
+        if idx == len(buckets):
+            bucket.reverse()
+        res = select_random_elems_from_beginning(bucket, num_of_elems=1)
         idx = idx + 1
     return res
 
 
 def print_stats(ctx: AppCtx, task_ids: list[int]) -> None:
     buckets = load_buckets(ctx, task_ids)
-    ctx.console.info('Bucket counts:\n')
+    ctx.console.info('\nBucket counts:\n')
     for i, b in enumerate(buckets):
         print(f'{i} - {len(b)}')
     ask_to_press_enter(ctx.console)

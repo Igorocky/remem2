@@ -122,7 +122,7 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
 
     def rnd_prompt() -> None:
         if state.enter_mark:
-            print(c.mark_prompt('Enter mark [1.0]: '), end='')
+            print(c.mark_prompt('Enter mark [1]: '), end='')
         elif state.correct_translation_entered:
             print(c.mark_prompt('Press Enter to go to the next task: '), end='')
         elif state.show_answer:
@@ -160,7 +160,7 @@ def process_user_input(
             user_translation=user_translation,
             correctness_indicator=correctness_indicator,
             correct_translation_entered=state.correct_translation_entered or correct_translation_entered,
-            enter_mark=enter_mark,
+            enter_mark=state.enter_mark or enter_mark,
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
@@ -168,19 +168,7 @@ def process_user_input(
             task_continuation=task_continuation
         )
 
-    con = ctx.database.con
-    if state.enter_mark:
-        try:
-            user_input = user_input.strip()
-            mark = 1.0 if user_input == '' else float(user_input)
-            if not (0.0 <= mark <= 1.0):
-                return update_state(enter_mark=True, err_msg='The mark must be between 0.0 and 1.0 (inclusively)')
-            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
-            return update_state(correct_translation_entered=True)
-        except ValueError:
-            return state
-    if user_input.startswith('`'):
-        cmd = user_input[1:]
+    def process_command(cmd: str) -> TranslateTaskState:
         match cmd:
             case 'e':
                 return update_state(task_continuation=TaskContinuation.EXIT)
@@ -196,6 +184,23 @@ def process_user_input(
                 return update_state(print_stats=True)
             case _:
                 return update_state(err_msg=f'Unknown command "{cmd}"')
+
+    con = ctx.database.con
+    if state.enter_mark:
+        try:
+            user_input = user_input.strip()
+            if user_input.startswith('`'):
+                return process_command(user_input[1:])
+            mark = 1.0 if user_input == '' else float(user_input)
+            if not (0.0 <= mark <= 1.0):
+                return update_state(enter_mark=True, err_msg='The mark must be between 0.0 and 1.0 (inclusively)')
+            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
+            return update_state(correct_translation_entered=True, enter_mark=False,
+                                task_continuation=TaskContinuation.NEXT_TASK)
+        except ValueError:
+            return state
+    if user_input.startswith('`'):
+        return process_command(user_input[1:])
     if state.correct_translation_entered:
         if user_input == '':
             return update_state(task_continuation=TaskContinuation.NEXT_TASK)
