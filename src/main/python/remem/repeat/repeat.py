@@ -1,6 +1,7 @@
 import random
 from dataclasses import dataclass
-from typing import Callable
+import time
+from typing import Callable, TypeVar
 from unittest import TestCase
 
 from remem.app_context import AppCtx
@@ -20,17 +21,35 @@ class TaskWithHist:
     last_repeated: int
 
 
-def select_random_tasks_from_beginning(sorted_tasks: list[TaskWithHist], num_of_tasks: int) -> list[TaskWithHist]:
-    src = sorted_tasks.copy()
-    num_of_tasks = min(num_of_tasks, len(sorted_tasks))
-    dst: list[TaskWithHist] = []
-    while len(dst) < num_of_tasks:
-        idx = random.randint(0, min(5, len(src) - 1))
+T = TypeVar('T')
+
+
+def select_random_elems_from_beginning(sorted_list: list[T], num_of_elems: int) -> list[T]:
+    if len(sorted_list) == 0:
+        return []
+    src = sorted_list.copy()
+    num_of_elems = min(num_of_elems, len(sorted_list))
+    dst: list[T] = []
+    while len(dst) < num_of_elems:
+        if len(src) >= 20:
+            max_idx = 6
+        elif len(src) >= 15:
+            max_idx = 5
+        elif len(src) >= 10:
+            max_idx = 4
+        elif len(src) >= 5:
+            max_idx = 3
+        else:
+            max_idx = min(1, len(src) - 1)
+        idx = random.randint(0, max_idx)
         dst.append(src.pop(idx))
     return dst
 
 
-def get_bucket_number(hist: list[TaskHistRec], max_num: int = 5) -> int:
+_num_of_buckets = 4
+
+
+def get_bucket_number(hist: list[TaskHistRec], max_num: int = _num_of_buckets - 1) -> int:
     res = 0
     for i, r in enumerate(hist):
         if res >= max_num:
@@ -72,26 +91,34 @@ def load_buckets(ctx: AppCtx, task_ids: list[int]) -> list[list[TaskWithHist]]:
         hist=hist[t.id] if t.id in hist else [],
         last_repeated=none_to_zero(hist[t.id][0].time) if t.id in hist else 0
     ) for t in select_tasks_by_ids(db.con, task_ids)]
-    num_of_buckets = 4
-    buckets: list[list[TaskWithHist]] = [[] for _ in range(0, num_of_buckets)]
+    buckets: list[list[TaskWithHist]] = [[] for _ in range(0, _num_of_buckets)]
     for t in tasks:
-        buckets[get_bucket_number(t.hist, max_num=num_of_buckets - 1)].append(t)
+        buckets[get_bucket_number(t.hist)].append(t)
     return buckets
+
+
+bucket_delay_minutes = [2, 5, 15, 30]
 
 
 def select_tasks_to_repeat(buckets: list[list[TaskWithHist]]) -> list[TaskWithHist]:
     buckets_len = len(buckets)
     res: list[TaskWithHist] = []
     for i, b in enumerate(buckets):
+        min_delay_sec = (bucket_delay_minutes[i] if i < len(buckets) else 0) * 60
+        curr_time_sec = int(time.time())
+        b = [t for t in b if curr_time_sec - t.last_repeated > min_delay_sec]
         b.sort(key=lambda t: t.last_repeated)
         if i == 0:
             b.reverse()
         res = (res +
-               select_random_tasks_from_beginning(
+               select_random_elems_from_beginning(
                    b,
-                   num_of_tasks=buckets_len - i if i < buckets_len - 1 else int((1 + buckets_len) * buckets_len / 2)
+                   num_of_elems=buckets_len - i if i < buckets_len - 1 else int((1 + buckets_len) * buckets_len / 2)
                ))
     res.sort(key=lambda t: t.last_repeated)
+    if len(res) == 0:
+        buckets[-1].sort(key=lambda t: t.last_repeated)
+        res = select_random_elems_from_beginning(buckets[-1], num_of_elems=1)
     return res
 
 
@@ -102,18 +129,18 @@ def print_stats(ctx: AppCtx, buckets: list[list[TaskWithHist]]) -> None:
 
 
 def repeat_tasks(ctx: AppCtx, task_ids: list[int]) -> None:
-    def load_tasks_to_repeat() -> list[TaskWithHist]:
+    def get_next_tasks_to_repeat() -> list[TaskWithHist]:
         buckets = load_buckets(ctx, task_ids)
         clear_screen()
         print_stats(ctx, buckets)
         ctx.console.input('\nPress Enter')
         return select_tasks_to_repeat(buckets)
 
-    tasks = load_tasks_to_repeat()
+    tasks = get_next_tasks_to_repeat()
     act = TaskContinuation.NEXT_TASK
     while act != TaskContinuation.CANCEL:
         if len(tasks) == 0:
-            tasks = load_tasks_to_repeat()
+            tasks = get_next_tasks_to_repeat()
         act = repeat_task(ctx, tasks.pop(0).task)
 
 
