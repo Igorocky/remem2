@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass
-from typing import Callable, Tuple
+from typing import Callable
 from unittest import TestCase
 
 from remem.app_context import AppCtx
@@ -8,7 +8,6 @@ from remem.commands import CollectionOfCommands
 from remem.console import clear_screen, select_single_option
 from remem.constants import TaskTypes
 from remem.dao import select_tasks_by_ids, select_task_hist
-from remem.data_commands import edit_card_by_id
 from remem.dtos import Task, TaskHistRec
 from remem.repeat import TaskContinuation
 from remem.repeat.repeat_translate_card import repeat_translate_task
