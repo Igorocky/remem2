@@ -86,7 +86,8 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
     c = ctx.console
 
     def rnd_commands() -> None:
-        c.hint(f'a - show answer    e - exit    u - update card    s - show statistics\n')
+        show_answer_cmd_descr = 'a - show answer    ' if state.show_answer else ''
+        c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics\n')
 
     def rnd_question() -> None:
         if state.dst.read_only:
@@ -126,7 +127,7 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
         elif state.correct_translation_entered:
             print(c.mark_prompt('Press Enter to go to the next task: '), end='')
         elif state.show_answer:
-            print(c.mark_prompt('Press Enter to hide the answer: '), end='')
+            print(c.mark_prompt('Type answer or press Enter to hide the answer: '), end='')
 
     rnd_commands()
     rnd_question()
@@ -172,7 +173,7 @@ def process_user_input(
         match cmd:
             case 'e':
                 return update_state(task_continuation=TaskContinuation.EXIT)
-            case 'a':
+            case 'a' if not state.dst.read_only:
                 if state.first_user_translation is None:
                     insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=''))
                     return update_state(first_user_translation='', show_answer=True)
@@ -198,19 +199,19 @@ def process_user_input(
             return update_state(correct_translation_entered=True, enter_mark=False,
                                 task_continuation=TaskContinuation.NEXT_TASK)
         except ValueError:
-            return state
+            return update_state()
     if user_input.startswith('`'):
         return process_command(user_input[1:])
     if state.correct_translation_entered:
         if user_input == '':
             return update_state(task_continuation=TaskContinuation.NEXT_TASK)
         else:
-            return state
+            return update_state()
     if state.dst.read_only:
         if state.first_user_translation is None:
             return update_state(first_user_translation='', enter_mark=True)
         else:
-            return state
+            return update_state()
     elif user_input != state.dst.text:
         if state.first_user_translation is None:
             insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=user_input))
