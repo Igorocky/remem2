@@ -117,6 +117,8 @@ def cmd_add_card(ctx: AppCtx) -> None:
             cache.set_card_tran_lang2_id(card.lang2_id)
             cache.set_card_tran_read_only1(card.read_only1)
             cache.set_card_tran_read_only2(card.read_only2)
+        elif isinstance(card, CardFillGaps):
+            cache.set_card_fill_lang_id(card.lang_id)
         with db.transaction() as tr:
             insert_card(tr, cache, card)
         c.info('A card has been saved:')

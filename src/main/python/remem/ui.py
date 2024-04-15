@@ -41,12 +41,6 @@ class Entry(Widget):
 
 @dataclass
 class Text(Widget):
-    width: int = 10
-    height: int = 5
-
-
-@dataclass
-class Text2(Widget):
     holder: list[tk.Text] = field(default_factory=lambda: [])
     init_value: str = ''
     width: int = 10
@@ -87,8 +81,6 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
                 if child.var is not None:
                     widget.configure(textvariable=child.var)
             elif isinstance(child, Text):
-                widget = tk.Text(frame, width=child.width, height=child.height)  # type: ignore[assignment]
-            elif isinstance(child, Text2):
                 widget = tk.Text(frame, width=child.width, height=child.height)  # type: ignore[assignment]
                 widget.insert('end', child.init_value)  # type: ignore[attr-defined]
                 child.holder.append(widget)  # type: ignore[arg-type]
@@ -213,12 +205,32 @@ def render_card_fill(
         parent: tk.Widget,
         is_edit: bool,
         on_save: Callable[[CardFillGaps], Try[None]],
-        card: CardFillGaps = CardFillGaps(),
+        card: CardFillGaps | None = None,
 ) -> tk.Widget:
+    if card is None:
+        card = CardFillGaps(lang_id=cache.get_card_fill_lang_id())
+    lang_str = StringVar(value=cache.lang_is[card.lang_id])
+    text: list[tk.Text] = []
+    notes: list[tk.Text] = []
+
+    def do_save() -> None:
+        card.lang_id = cache.lang_si[lang_str.get()]
+        card.text = text[0].get(1.0, 'end')
+        card.notes = notes[0].get(1.0, 'end')
+        result = on_save(card)
+        if result.is_success() and not is_edit:
+            text[0].delete(1.0, 'end')
+            notes[0].delete(1.0, 'end')
+        if result.is_failure():
+            messagebox.showerror(message=str(result.ex))
+
+    langs = list(cache.lang_si)
+    lang_width = max([len(lang) for lang in langs]) + 2
     return render_grid(parent, [
-        [Label(text='Text', sticky=tk.NE), Text(width=100, height=10)],
-        [Label(text='Notes', sticky=tk.NE), Text(width=100, height=10)],
-        [Empty(), Button(text='Save' if is_edit else 'Add', sticky=tk.E)],
+        [Label(text='Language', sticky=tk.E), Combobox(values=langs, width=lang_width, var=lang_str, sticky=tk.W)],
+        [Label(text='Text', sticky=tk.NE), Text(width=100, height=10, init_value=card.text, holder=text)],
+        [Label(text='Notes', sticky=tk.NE), Text(width=100, height=10, init_value=card.notes, holder=notes)],
+        [Empty(), Button(text='Save' if is_edit else 'Add', sticky=tk.E, cmd=do_save)],
     ])
 
 
@@ -249,7 +261,7 @@ def render_query(
         ],
         [
             Label(text='Query text', sticky=tk.E),
-            Text2(width=100, height=10, init_value=query.text, holder=text),
+            Text(width=100, height=10, init_value=query.text, holder=text),
         ],
         [
             Empty(),

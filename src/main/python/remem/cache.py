@@ -129,3 +129,12 @@ class Cache:
 
     def set_card_tran_read_only2(self, read_only: int) -> None:
         self._set(Cache._sn_card_tran_read_only2, str(fit_to_range(read_only, 0, 1)))
+
+    _sn_card_fill_lang_id = 'card_fill_lang_id'
+
+    def get_card_fill_lang_id(self) -> int:
+        lang_id = self._get_int(Cache._sn_card_fill_lang_id)
+        return list(self.lang_is)[0] if lang_id is None else lang_id
+
+    def set_card_fill_lang_id(self, lang_id: int) -> None:
+        self._set(Cache._sn_card_fill_lang_id, str(lang_id))
