@@ -125,9 +125,9 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
         if state.enter_mark:
             print(c.mark_prompt('Enter mark [1]: '), end='')
         elif state.correct_translation_entered:
-            print(c.mark_prompt('Press Enter to go to the next task: '), end='')
+            print(c.mark_hint('(Press Enter to go to the next task)\n'))
         elif state.show_answer:
-            print(c.mark_prompt('Type answer or press Enter to hide the answer: '), end='')
+            print(c.mark_hint('(press Enter to hide the answer)\n'))
 
     rnd_commands()
     rnd_question()

@@ -1,7 +1,8 @@
 import os
 import re
 import traceback
-from typing import Optional, Tuple
+from typing import Tuple
+from unittest import TestCase
 
 from remem.app_settings import AppSettings
 
@@ -10,43 +11,75 @@ def add_color(color_rgb: Tuple[int, int, int], text: str) -> str:
     return f'\033[38;2;{color_rgb[0]};{color_rgb[1]};{color_rgb[2]}m{text}\033[0m'
 
 
-def select_single_option(options: list[str]) -> Optional[int]:
+def parse_idxs(inp: str) -> list[int]:
+    if not re.match(r'^[\d\s-]+$', inp):
+        return []
+    groups = [m.group(1) for m in re.finditer(r'(\S+)', inp)]
+    res = []
+    for grp in groups:
+        if re.match(r'^\d+$', grp):
+            res.append(int(grp))
+        else:
+            start, end = grp.split('-')
+            res.extend(range(int(start), int(end) + 1))
+    return res
+
+
+class ParseIdxsTest(TestCase):
+    def test_parse_idxs(self) -> None:
+        self.assertEqual(parse_idxs(''), [])
+        self.assertEqual(parse_idxs('7'), [7])
+        self.assertEqual(parse_idxs('7 15'), [7, 15])
+        self.assertEqual(parse_idxs('7 15'), [7, 15])
+        self.assertEqual(parse_idxs('7 15 20'), [7, 15, 20])
+        self.assertEqual(parse_idxs('4-8'), [4, 5, 6, 7, 8])
+        self.assertEqual(parse_idxs('1 4-8 10'), [1, 4, 5, 6, 7, 8, 10])
+        self.assertEqual(parse_idxs('abc 4'), [])
+
+
+def _select_options(options: list[str], single: bool) -> list[int]:
     filt: list[str] = []
 
     def option_matches_filter(opt: str, flt: list[str]) -> bool:
-        return all([f.lower() in opt.lower() for f in flt])
+        return all([f in opt.lower() for f in flt])
 
-    def print_options() -> None:
-        if len(filt) == 0:
-            print('0. Cancel')
-        for i, o in enumerate(options):
-            if option_matches_filter(o, filt):
-                print(f'{i + 1}. {o}')
+    def print_options(filtered_options: list[Tuple[int, str]]) -> None:
+        for i, o in filtered_options:
+            print(f'{i}. {o}')
+        print('` - Cancel')
+        if not single:
+            print('`` - Select all')
 
     while True:
-        print_options()
-        try:
-            inp = input()
-            if len(inp) == 0:
-                filtered_option_idxs = [i for i, o in enumerate(options) if option_matches_filter(o, filt)]
-                if len(filtered_option_idxs) == 1:
-                    return filtered_option_idxs[0]
-                else:
-                    filt = []
-            if re.match(r'\d+', inp):
-                filt = []
-                idx = int(inp)
-                if 0 <= idx <= len(options):
-                    if idx == 0:
-                        return None
-                    else:
-                        return idx - 1
+        filtered_options = [(i + 1, o) for i, o in enumerate(options) if option_matches_filter(o, filt)]
+        print_options(filtered_options)
+        inp = input().strip()
+        if inp == '`':
+            return []
+        if inp == '``' and not single:
+            return [i - 1 for i, _ in filtered_options]
+        if inp == '':
+            if len(filtered_options) == 1:
+                return [filtered_options[0][0] - 1]
             else:
-                filt = [m.group(1) for m in re.finditer(r'(\S+)', inp)]
-            print()
-        except ValueError:
-            print()
-            pass
+                filt = []
+            continue
+        selected_idxs = parse_idxs(inp)
+        if len(selected_idxs) > 0:
+            return [i - 1 for i, _ in filtered_options if i in selected_idxs]
+        filt = [m.group(1).lower() for m in re.finditer(r'(\S+)', inp)]
+        print()
+
+
+def select_single_option(options: list[str]) -> int | None:
+    idxs = _select_options(options, single=True)
+    if len(idxs) == 0:
+        return None
+    return idxs[0]
+
+
+def select_multiple_options(options: list[str]) -> list[int]:
+    return _select_options(options, single=False)
 
 
 def clear_screen() -> None:

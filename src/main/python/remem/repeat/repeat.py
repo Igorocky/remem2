@@ -1,12 +1,13 @@
+import dataclasses
 import random
 import time
 from dataclasses import dataclass
-from typing import Callable, TypeVar
+from typing import Callable, TypeVar, Tuple
 from unittest import TestCase
 
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
-from remem.console import select_single_option
+from remem.console import select_multiple_options
 from remem.constants import TaskTypes
 from remem.dao import select_tasks_by_ids, select_task_hist
 from remem.dtos import Task, TaskHistRec
@@ -151,39 +152,128 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> Tas
             raise Exception(f'Unexpected type of task: {task}')
 
 
-def cmd_repeat_tasks(ctx: AppCtx) -> None:
+@dataclass
+class FolderWithPathDto:
+    id: int
+    path: str
+
+
+def select_folders(ctx: AppCtx) -> list[FolderWithPathDto] | None:
     c = ctx.console
     db = ctx.database
-    cache = ctx.cache
-    folder_id = int(c.input('Folder id: ').strip())
-    available_task_types = [cache.task_types_is[r['task_type_id']] for r in db.con.execute(
-        """
+    all_folders = [FolderWithPathDto(**r) for r in db.con.execute("""
+        with recursive folders(id, path) as (
+            select id, '/'||name from FOLDER where parent_id is null
+            union all
+            select ch.id, pr.path||'/'||ch.name
+            from folders pr inner join FOLDER ch on pr.id = ch.parent_id
+            order by 1 desc
+        )
+        select id, path from folders
+        order by path
+    """)]
+    folder_name_pat = c.input('Folder name: ').lower().strip()
+    matching_folders = [f for f in all_folders if folder_name_pat in f.path.lower()]
+    if len(matching_folders) == 0:
+        return None
+    idxs = select_multiple_options([f.path for f in matching_folders])
+    return [matching_folders[i] for i in idxs]
+
+
+@dataclass
+class TaskTypeForSelectDto:
+    task_type_id: int
+    lang1_id: int
+    lang2_id: int | None
+    descr: str = ''
+
+
+def create_task_type_description(ctx: AppCtx, task_type: TaskTypeForSelectDto) -> str:
+    ca = ctx.cache
+    if task_type.task_type_id == ca.task_types_si[TaskTypes.translate_12]:
+        lang1_id = task_type.lang1_id
+        lang2_id = task_type.lang2_id or list(ca.lang_is)[0]
+        return f'{ca.lang_is[lang1_id]} -> {ca.lang_is[lang2_id]}'
+    if task_type.task_type_id == ca.task_types_si[TaskTypes.translate_21]:
+        lang1_id = task_type.lang1_id
+        lang2_id = task_type.lang2_id or list(ca.lang_is)[0]
+        return f'{ca.lang_is[lang2_id]} -> {ca.lang_is[lang1_id]}'
+    if task_type.task_type_id == ca.task_types_si[TaskTypes.fill_gaps]:
+        lang1_id = task_type.lang1_id
+        return f'Fill gaps {ca.lang_is[lang1_id]}'
+    raise Exception(f'Unexpected task type: {task_type}')
+
+
+def select_available_task_types(ctx: AppCtx, folder_ids: list[int]) -> list[TaskTypeForSelectDto]:
+    available_task_types = [TaskTypeForSelectDto(**r) for r in ctx.database.con.execute(
+        f"""
             with recursive folders(id) as (
-                select id from FOLDER where id = ?
+                select id from FOLDER where {' or '.join(['id = ?'] * len(folder_ids))}
                 union all
                 select ch.id
                 from folders pr inner join FOLDER ch on pr.id = ch.parent_id
             )
-            select distinct t.task_type_id
+            select distinct
+                t.task_type_id task_type_id,
+                case
+                    when t.task_type_id in (1,2) /*lang1->lang2 or lang2->lang1*/ then ct.lang1_id
+                    when t.task_type_id = 3 /*fill_gaps*/ then CF.lang_id
+                end lang1_id,
+                case
+                    when t.task_type_id in (1,2) /*lang1->lang2 or lang2->lang1*/ then ct.lang2_id
+                end lang2_id
             from folders f
                 inner join CARD c on f.id = c.folder_id
                 inner join TASK t on c.id = t.card_id
+                left join CARD_TRAN CT on c.id = CT.id
+                left join CARD_FILL CF on c.id = CF.id
         """,
-        [folder_id]
+        folder_ids
     )]
-    if len(available_task_types) == 0:
-        c.error('No tasks found in the specified folder')
-        return
-    available_task_types.sort()
-    c.prompt('Select task type:')
-    task_type_idx = select_single_option(available_task_types)
-    if task_type_idx is None:
-        return
-    task_type_id = cache.task_types_si[available_task_types[task_type_idx]]
-    task_ids = [r['id'] for r in db.con.execute(
-        """
+    return [dataclasses.replace(t, descr=create_task_type_description(ctx, t)) for t in available_task_types]
+
+
+def select_task_ids(ctx: AppCtx, folder_ids: list[int], task_types: list[TaskTypeForSelectDto]) -> list[int]:
+    ca = ctx.cache
+
+    def create_folder_ids_condition() -> Tuple[str, dict[str, int]]:
+        return (
+            ' or '.join([f'id = :folder_id{i}' for i, id in enumerate(folder_ids)]),
+            {f'folder_id{i}': id for i, id in enumerate(folder_ids)}
+        )
+
+    def create_task_types_condition() -> Tuple[str, dict[str, int]]:
+        params = {}
+        conditions = []
+        for i, t in enumerate(task_types):
+            if (t.task_type_id == ca.task_types_si[TaskTypes.translate_12]
+                    or t.task_type_id == ca.task_types_si[TaskTypes.translate_21]):
+                conditions.append(f"""
+                    t.task_type_id = :task_type_id{i} and ct.lang1_id = :lang1_id{i} and ct.lang2_id = :lang2_id{i}
+                """)
+                params[f'task_type_id{i}'] = t.task_type_id
+                params[f'lang1_id{i}'] = t.lang1_id
+                params[f'lang2_id{i}'] = t.lang2_id or list(ctx.cache.lang_is)[0]
+            elif t.task_type_id == ca.task_types_si[TaskTypes.fill_gaps]:
+                conditions.append(f"""
+                    t.task_type_id = :task_type_id{i} and cf.lang_id = :lang_id{i}
+                """)
+                params[f'task_type_id{i}'] = t.task_type_id
+                params[f'lang_id{i}'] = t.lang1_id
+            else:
+                raise Exception(f'Unexpected type of task: {t}')
+
+        return (
+            ' or '.join(conditions),
+            params
+        )
+
+    folder_ids_condition, folder_ids_params = create_folder_ids_condition()
+    task_types_condition, task_types_params = create_task_types_condition()
+    return [r['id'] for r in ctx.database.con.execute(
+        f"""
             with recursive folders(id) as (
-                select id from FOLDER where id = :folder_id
+                select id from FOLDER where {folder_ids_condition}
                 union all
                 select ch.id
                 from folders pr inner join FOLDER ch on pr.id = ch.parent_id
@@ -192,10 +282,34 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
             from folders f
                 inner join CARD c on f.id = c.folder_id
                 inner join TASK t on c.id = t.card_id
-            where t.task_type_id = :task_type_id
+                left join CARD_TRAN CT on c.id = CT.id
+                left join CARD_FILL CF on c.id = CF.id
+            where {task_types_condition}
         """,
-        dict(folder_id=folder_id, task_type_id=task_type_id)
+        {**folder_ids_params, **task_types_params}
     )]
+
+
+def cmd_repeat_tasks(ctx: AppCtx) -> None:
+    c = ctx.console
+    selected_folders = select_folders(ctx)
+    if selected_folders is None:
+        c.error('No folders found')
+        return
+    if len(selected_folders) == 0:
+        return
+    folder_ids = [f.id for f in selected_folders]
+    available_task_types = select_available_task_types(ctx, folder_ids)
+    if len(available_task_types) == 0:
+        c.error('No tasks found in the specified folders')
+        return
+    available_task_types.sort(key=lambda t: t.descr)
+    c.prompt('Select task type:')
+    task_type_idxs = select_multiple_options([t.descr for t in available_task_types])
+    if len(task_type_idxs) == 0:
+        return
+    selected_task_types = [available_task_types[i] for i in task_type_idxs]
+    task_ids = select_task_ids(ctx, folder_ids, selected_task_types)
     repeat_tasks(ctx, task_ids)
 
 
