@@ -304,7 +304,7 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
         c.error('No tasks found in the specified folders')
         return
     available_task_types.sort(key=lambda t: t.descr)
-    c.prompt('Select task type:')
+    c.prompt('Select task types:')
     task_type_idxs = select_multiple_options([t.descr for t in available_task_types])
     if len(task_type_idxs) == 0:
         return

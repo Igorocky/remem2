@@ -86,7 +86,7 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
     c = ctx.console
 
     def rnd_commands() -> None:
-        show_answer_cmd_descr = 'a - show answer    ' if state.show_answer else ''
+        show_answer_cmd_descr = 'a - show answer    ' if not state.dst.read_only else ''
         c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics\n')
 
     def rnd_question() -> None:
