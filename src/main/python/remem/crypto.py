@@ -20,9 +20,9 @@ def make_new_key(salt: str, pwd: str) -> bytes:
     return base64.urlsafe_b64encode(kdf.derive(bytes(pwd, 'utf-8')))
 
 
-def encrypt(text: str, f: Fernet) -> bytes:
+def encrypt(f: Fernet, text: str) -> bytes:
     return f.encrypt(bytes(text, 'utf-8'))
 
 
-def decrypt(data: bytes, f: Fernet) -> str:
+def decrypt(f: Fernet, data: bytes) -> str:
     return str(f.decrypt(data), 'utf-8')
