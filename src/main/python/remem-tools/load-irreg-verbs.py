@@ -5,6 +5,8 @@ from remem.app_context import init_app_context
 from remem.dao import insert_folder, insert_translate_card
 from remem.dtos import Folder
 
+tmp_dir_path = '../../../temp/'
+
 
 def parse_words(file_path: str) -> list[Tuple[str, str, str, str]]:
     tree = ET.parse(file_path)
