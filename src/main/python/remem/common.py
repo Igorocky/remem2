@@ -74,11 +74,13 @@ def duration_str_to_seconds(dur_str: str) -> int:
             case 'd':
                 return val * _seconds_in_day
             case _:
-                raise Exception()
+                raise Exception(f'Unexpected unit "{unit}"')
+    else:
+        raise Exception(f'Unexpected format of duration "{dur_str}"')
 
 
 class DurationStrToSecondsTest(TestCase):
-    def test_duration_str_to_seconds(self):
+    def test_duration_str_to_seconds(self) -> None:
         self.assertEqual(duration_str_to_seconds('1m'), 60)
         self.assertEqual(duration_str_to_seconds('16m'), 16*60)
         self.assertEqual(duration_str_to_seconds('1h'), 60*60)
