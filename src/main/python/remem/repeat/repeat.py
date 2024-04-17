@@ -292,13 +292,19 @@ def select_task_ids(ctx: AppCtx, folder_ids: list[int], task_types: list[TaskTyp
 
 def cmd_repeat_tasks(ctx: AppCtx) -> None:
     c = ctx.console
+
     selected_folders = select_folders(ctx)
     if selected_folders is None:
         c.error('No folders found')
         return
     if len(selected_folders) == 0:
         return
+    print()
+    c.info('\nSelected folders:')
+    for f in selected_folders:
+        print(f.path)
     folder_ids = [f.id for f in selected_folders]
+
     available_task_types = select_available_task_types(ctx, folder_ids)
     if len(available_task_types) == 0:
         c.error('No tasks found in the specified folders')
@@ -309,6 +315,12 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
     if len(task_type_idxs) == 0:
         return
     selected_task_types = [available_task_types[i] for i in task_type_idxs]
+    c.info('\nSelected task types:')
+    for t in selected_task_types:
+        print(t.descr)
+    print()
+    folder_ids = [f.id for f in selected_folders]
+
     task_ids = select_task_ids(ctx, folder_ids, selected_task_types)
     repeat_tasks(ctx, task_ids)
 
