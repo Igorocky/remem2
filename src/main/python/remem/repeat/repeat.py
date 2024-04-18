@@ -10,7 +10,7 @@ from unittest import TestCase
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
 from remem.common import duration_str_to_seconds, seconds_to_duration_str
-from remem.console import select_multiple_options, select_single_option
+from remem.console import select_multiple_options, select_single_option, clear_screen
 from remem.constants import TaskTypes
 from remem.dao import select_task_hist, select_tasks_with_base_cards_by_ids
 from remem.dtos import Task, TaskHistRec, TaskWithBaseCard
@@ -135,11 +135,12 @@ def select_tasks_to_repeat(buckets: list[list[TaskWithHist]], bucket_delays: lis
 
 
 def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> None:
+    c = ctx.console
     buckets = load_buckets(ctx, task_ids, num_of_buckets=len(bucket_delays))
     curr_time_sec = int(time.time())
-    ctx.console.info(f'\nBucket delays : {" ".join([seconds_to_duration_str(d) for d in bucket_delays])}\n')
-    ctx.console.info(f'\nTotal number of tasks : {len(task_ids)}\n')
-    ctx.console.info('\nBucket counts (total/waiting/active time_to_wait):\n')
+    print(f"\n{c.mark_info('Bucket delays:')} {' '.join([seconds_to_duration_str(d) for d in bucket_delays])}")
+    print(f"\n{c.mark_info('Total number of tasks:')} {len(task_ids)}")
+    ctx.console.info('\nBucket counts (total, active, waiting, time_to_wait):\n')
     for bucket_idx, bucket in enumerate(buckets):
         min_delay_sec = bucket_delays[bucket_idx]
         active = []
@@ -154,7 +155,10 @@ def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> N
             time_to_wait_str = seconds_to_duration_str(time_to_wait)
         else:
             time_to_wait_str = ''
-        print(f'{bucket_idx} - {len(bucket)}/{len(waiting)}/{len(active)} {time_to_wait_str}')
+        print(
+            f'{str(bucket_idx).rjust(2)}: {str(len(bucket)).rjust(4)} '
+            f'{str(len(active)).rjust(4)} {str(len(waiting)).rjust(4)} {time_to_wait_str}'
+        )
     ask_to_press_enter(ctx.console)
 
 
@@ -162,6 +166,7 @@ def repeat_tasks_with_buckets(ctx: AppCtx, task_ids: list[int], buckets_descr: s
     bucket_delays = [duration_str_to_seconds(m.group(1)) for m in re.finditer(r'(\S+)', buckets_descr)]
     num_of_buckets = len(bucket_delays)
 
+    clear_screen()
     print_stats(ctx, task_ids, bucket_delays)
 
     def get_next_tasks_to_repeat() -> list[TaskWithHist]:
@@ -174,7 +179,7 @@ def repeat_tasks_with_buckets(ctx: AppCtx, task_ids: list[int], buckets_descr: s
             tasks = get_next_tasks_to_repeat()
         act = repeat_task(
             ctx,
-            Task(**{k: v for k, v in tasks.pop(0).task.__dict__.items() if k != 'a'}),
+            Task(**{k: v for k, v in tasks.pop(0).task.__dict__.items() if k != 'card'}),
             print_stats=lambda: print_stats(ctx, task_ids, bucket_delays)
         )
 
@@ -336,10 +341,10 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
         return
     if len(selected_folders) == 0:
         return
-    print()
     c.info('\nSelected folders:')
     for f in selected_folders:
         print(f.path)
+    print()
     folder_ids = [f.id for f in selected_folders]
 
     available_task_types = select_available_task_types(ctx, folder_ids)
@@ -359,9 +364,9 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
     folder_ids = [f.id for f in selected_folders]
 
     task_ids = select_task_ids(ctx, folder_ids, selected_task_types)
-    print(f'{c.mark_info("Number of loaded tasks: ")} + {len(task_ids)}\n')
+    print(f'{c.mark_info("Number of loaded tasks: ")}{len(task_ids)}\n')
 
-    available_strategies = [*[f'{name}: {value}' for name, value in ctx.settings.buckets.items()], 'circle']
+    available_strategies = [*[f'buckets: {name} {value}' for name, value in ctx.settings.buckets.items()], 'circle']
     c.prompt('Select strategy:')
     strategy_idx = select_single_option(available_strategies)
     if strategy_idx is None:

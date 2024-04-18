@@ -195,9 +195,9 @@ def select_tasks_with_base_cards_by_ids(con: Connection, task_ids: list[int]) ->
                     card_type_id=r['c_card_type_id'],
                     crt_time=r['c_crt_time'],
                 ),
-                id=r['id'],
-                card_id=r['card_id'],
-                task_type_id=r['task_type_id'],
+                id=r['t_id'],
+                card_id=r['t_card_id'],
+                task_type_id=r['t_task_type_id'],
             ))
     return result
 
