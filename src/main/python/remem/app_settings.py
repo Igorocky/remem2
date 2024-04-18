@@ -15,7 +15,7 @@ class AppSettings:
     console_colors_prompt: Tuple[int, int, int] = (0, 0, 255)
     console_colors_error: Tuple[int, int, int] = (255, 0, 0)
     print_stack_traces_for_exceptions: bool = True
-    buckets: dict[str, list[str]] = field(default_factory=lambda: {'short_buckets': ['2m', '5m', '15m', '30m']})
+    buckets: dict[str, str] = field(default_factory=lambda: {'short_buckets': '2m 5m 15m 30m'})
 
 
 def load_app_settings(path: str) -> AppSettings:

@@ -1,5 +1,7 @@
 import dataclasses
+import math
 import random
+import re
 import time
 from dataclasses import dataclass
 from typing import Callable, TypeVar, Tuple
@@ -7,17 +9,18 @@ from unittest import TestCase
 
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
-from remem.console import select_multiple_options
+from remem.common import duration_str_to_seconds, seconds_to_duration_str
+from remem.console import select_multiple_options, select_single_option
 from remem.constants import TaskTypes
-from remem.dao import select_tasks_by_ids, select_task_hist
-from remem.dtos import Task, TaskHistRec
+from remem.dao import select_task_hist, select_tasks_with_base_cards_by_ids
+from remem.dtos import Task, TaskHistRec, TaskWithBaseCard
 from remem.repeat import TaskContinuation
 from remem.repeat.repeat_translate_card import repeat_translate_task, ask_to_press_enter
 
 
 @dataclass
 class TaskWithHist:
-    task: Task
+    task: TaskWithBaseCard
     hist: list[TaskHistRec]
     last_repeated: int
 
@@ -25,33 +28,41 @@ class TaskWithHist:
 T = TypeVar('T')
 
 
-def select_random_elems_from_beginning(sorted_list: list[T], num_of_elems: int) -> list[T]:
-    if len(sorted_list) == 0:
+def select_random_tasks_from_beginning(
+        sorted_tasks: list[TaskWithHist],
+        max_num_of_tasks: int,
+        preferred_folders: list[int]
+) -> list[TaskWithHist]:
+    if len(sorted_tasks) == 0:
         return []
-    src = sorted_list.copy()
-    num_of_elems = min(num_of_elems, len(sorted_list))
-    dst: list[T] = []
-    while len(dst) < num_of_elems:
-        if len(src) >= 20:
-            max_idx = 6
-        elif len(src) >= 15:
-            max_idx = 5
-        elif len(src) >= 10:
-            max_idx = 4
-        elif len(src) >= 5:
-            max_idx = 3
+    src = sorted_tasks.copy()
+    dst: list[TaskWithHist] = []
+    while len(dst) < max_num_of_tasks and len(src) > 0:
+        time_span_for_search = math.fabs(src[0].last_repeated - src[-1].last_repeated) * 0.2
+        for folder_id in preferred_folders:
+            tasks_to_select_from = [
+                t for t in src
+                if (math.fabs(t.last_repeated - src[0].last_repeated) <= time_span_for_search
+                    and t.task.card.folder_id == folder_id)]
+            if len(tasks_to_select_from) > 0:
+                selected_task = tasks_to_select_from[random.randint(0, len(tasks_to_select_from) - 1)]
+                break
         else:
-            max_idx = min(1, len(src) - 1)
-        idx = random.randint(0, max_idx)
-        dst.append(src.pop(idx))
+            tasks_to_select_from = [
+                t for t in src
+                if math.fabs(t.last_repeated - src[0].last_repeated) <= time_span_for_search]
+            if len(tasks_to_select_from) > 0:
+                selected_task = tasks_to_select_from[random.randint(0, len(tasks_to_select_from) - 1)]
+            else:
+                break
+        dst.append(selected_task)
+        src = [t for t in src if t.task.id != selected_task.task.id]
+        preferred_folders.remove(selected_task.task.card.folder_id)
+        preferred_folders.append(selected_task.task.card.folder_id)
     return dst
 
 
-_bucket_delay_minutes = [2, 5, 15, 30]
-_num_of_buckets = len(_bucket_delay_minutes)
-
-
-def get_bucket_number(hist: list[TaskHistRec], max_num: int = _num_of_buckets - 1) -> int:
+def get_bucket_number(hist: list[TaskHistRec], max_num: int) -> int:
     res = 0
     for i, r in enumerate(hist):
         if res >= max_num:
@@ -68,78 +79,104 @@ class GetBucketNumberTest(TestCase):
         def make_hist(marks: list[float]) -> list[TaskHistRec]:
             return [TaskHistRec(mark=mark) for mark in marks]
 
-        self.assertEqual(get_bucket_number([]), 0)
-        self.assertEqual(get_bucket_number(make_hist([0.0])), 0)
-        self.assertEqual(get_bucket_number(make_hist([1.0])), 1)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 0.0])), 1)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0])), 2)
-        self.assertEqual(get_bucket_number(make_hist([0.0, 1.0])), 0)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 0.0, 1.0])), 1)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0])), 3)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 0.0])), 2)
-        self.assertEqual(get_bucket_number(make_hist([0.0, 1.0, 1.0, 1.0])), 0)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0, 1.0])), 4)
+        self.assertEqual(get_bucket_number([], max_num=10), 0)
+        self.assertEqual(get_bucket_number(make_hist([0.0]), max_num=10), 0)
+        self.assertEqual(get_bucket_number(make_hist([1.0]), max_num=10), 1)
+        self.assertEqual(get_bucket_number(make_hist([1.0, 0.0]), max_num=10), 1)
+        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0]), max_num=10), 2)
+        self.assertEqual(get_bucket_number(make_hist([0.0, 1.0]), max_num=10), 0)
+        self.assertEqual(get_bucket_number(make_hist([1.0, 0.0, 1.0]), max_num=10), 1)
+        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0]), max_num=10), 3)
+        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 0.0]), max_num=10), 2)
+        self.assertEqual(get_bucket_number(make_hist([0.0, 1.0, 1.0, 1.0]), max_num=10), 0)
+        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0, 1.0]), max_num=10), 4)
         self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0, 1.0]), max_num=3), 3)
 
 
-def load_buckets(ctx: AppCtx, task_ids: list[int]) -> list[list[TaskWithHist]]:
+def load_buckets(ctx: AppCtx, task_ids: list[int], num_of_buckets: int) -> list[list[TaskWithHist]]:
     def none_to_zero(i: int | None) -> int:
         return 0 if i is None else i
 
     db = ctx.database
-    hist = select_task_hist(db.con, task_ids, max_num_of_records_per_task=5)
+    hist = select_task_hist(db.con, task_ids, max_num_of_records_per_task=num_of_buckets)
     tasks = [TaskWithHist(
         task=t,
         hist=hist[t.id] if t.id in hist else [],
         last_repeated=none_to_zero(hist[t.id][0].time) if t.id in hist else 0
-    ) for t in select_tasks_by_ids(db.con, task_ids)]
-    buckets: list[list[TaskWithHist]] = [[] for _ in range(0, _num_of_buckets)]
+    ) for t in select_tasks_with_base_cards_by_ids(db.con, task_ids)]
+    buckets: list[list[TaskWithHist]] = [[] for _ in range(0, num_of_buckets)]
     for t in tasks:
-        buckets[get_bucket_number(t.hist)].append(t)
+        buckets[get_bucket_number(t.hist, max_num=num_of_buckets - 1)].append(t)
     return buckets
 
 
-def select_tasks_to_repeat(buckets: list[list[TaskWithHist]]) -> list[TaskWithHist]:
-    buckets_len = len(buckets)
+def select_tasks_to_repeat(buckets: list[list[TaskWithHist]], bucket_delays: list[int]) -> list[TaskWithHist]:
+    all_tasks = [t for b in buckets for t in b]
+    folder_last_access = [(t.task.card.folder_id, t.last_repeated) for t in all_tasks]
+    folder_last_access.sort(key=lambda f: f[1])
+    preferred_folders = [f[0] for f in folder_last_access]
+    curr_time_sec = int(time.time())
+    num_of_buckets = len(buckets)
     res: list[TaskWithHist] = []
-    for i, b in enumerate(buckets):
-        min_delay_sec = _bucket_delay_minutes[i] * 60
-        curr_time_sec = int(time.time())
-        b = [t for t in b if curr_time_sec - t.last_repeated > min_delay_sec]
-        b.sort(key=lambda t: t.last_repeated)
-        if i == 0:
-            b.reverse()
-        res = res + select_random_elems_from_beginning(b, num_of_elems=buckets_len - i)
+    for bucket_idx, bucket in enumerate(buckets):
+        min_delay_sec = bucket_delays[bucket_idx]
+        bucket = [t for t in bucket if curr_time_sec - t.last_repeated >= min_delay_sec]
+        if len(bucket) > 0:
+            bucket.sort(key=lambda t: t.last_repeated)
+            if bucket_idx == 0:
+                bucket.reverse()
+            res = res + select_random_tasks_from_beginning(
+                sorted_tasks=bucket,
+                max_num_of_tasks=num_of_buckets - bucket_idx,
+                preferred_folders=preferred_folders
+            )
     res.sort(key=lambda t: t.last_repeated)
-    idx = 1
-    while len(res) == 0:
-        bucket = buckets[-idx]
-        bucket.sort(key=lambda t: t.last_repeated)
-        if idx == len(buckets):
-            bucket.reverse()
-        res = select_random_elems_from_beginning(bucket, num_of_elems=1)
-        idx = idx + 1
     return res
 
 
-def print_stats(ctx: AppCtx, task_ids: list[int]) -> None:
-    buckets = load_buckets(ctx, task_ids)
-    ctx.console.info('\nBucket counts:\n')
-    for i, b in enumerate(buckets):
-        print(f'{i} - {len(b)}')
+def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> None:
+    buckets = load_buckets(ctx, task_ids, num_of_buckets=len(bucket_delays))
+    curr_time_sec = int(time.time())
+    ctx.console.info(f'\nBucket delays : {" ".join([seconds_to_duration_str(d) for d in bucket_delays])}\n')
+    ctx.console.info(f'\nTotal number of tasks : {len(task_ids)}\n')
+    ctx.console.info('\nBucket counts (total/waiting/active time_to_wait):\n')
+    for bucket_idx, bucket in enumerate(buckets):
+        min_delay_sec = bucket_delays[bucket_idx]
+        active = []
+        waiting = []
+        for t in bucket:
+            if curr_time_sec - t.last_repeated >= min_delay_sec:
+                active.append(t)
+            else:
+                waiting.append(t)
+        if len(active) == 0:
+            time_to_wait = min([min_delay_sec - (curr_time_sec - t.last_repeated) for t in waiting])
+            time_to_wait_str = seconds_to_duration_str(time_to_wait)
+        else:
+            time_to_wait_str = ''
+        print(f'{bucket_idx} - {len(bucket)}/{len(waiting)}/{len(active)} {time_to_wait_str}')
     ask_to_press_enter(ctx.console)
 
 
-def repeat_tasks(ctx: AppCtx, task_ids: list[int]) -> None:
+def repeat_tasks_with_buckets(ctx: AppCtx, task_ids: list[int], buckets_descr: str) -> None:
+    bucket_delays = [duration_str_to_seconds(m.group(1)) for m in re.finditer(r'(\S+)', buckets_descr)]
+    num_of_buckets = len(bucket_delays)
+
+    print_stats(ctx, task_ids, bucket_delays)
+
     def get_next_tasks_to_repeat() -> list[TaskWithHist]:
-        return select_tasks_to_repeat(load_buckets(ctx, task_ids))
+        return select_tasks_to_repeat(load_buckets(ctx, task_ids, num_of_buckets), bucket_delays)
 
     tasks = get_next_tasks_to_repeat()
     act = TaskContinuation.NEXT_TASK
     while act != TaskContinuation.EXIT:
         if len(tasks) == 0:
             tasks = get_next_tasks_to_repeat()
-        act = repeat_task(ctx, tasks.pop(0).task, print_stats=lambda: print_stats(ctx, task_ids))
+        act = repeat_task(
+            ctx,
+            Task(**{k: v for k, v in tasks.pop(0).task.__dict__.items() if k != 'a'}),
+            print_stats=lambda: print_stats(ctx, task_ids, bucket_delays)
+        )
 
 
 def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
@@ -322,7 +359,19 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
     folder_ids = [f.id for f in selected_folders]
 
     task_ids = select_task_ids(ctx, folder_ids, selected_task_types)
-    repeat_tasks(ctx, task_ids)
+    print(f'{c.mark_info("Number of loaded tasks: ")} + {len(task_ids)}\n')
+
+    available_strategies = [*[f'{name}: {value}' for name, value in ctx.settings.buckets.items()], 'circle']
+    c.prompt('Select strategy:')
+    strategy_idx = select_single_option(available_strategies)
+    if strategy_idx is None:
+        return
+    if strategy_idx < len(ctx.settings.buckets):
+        repeat_tasks_with_buckets(ctx, task_ids, list(ctx.settings.buckets.values())[strategy_idx])
+    elif available_strategies[strategy_idx] == 'circle':
+        raise Exception('The Circle strategy is not implemented yet')
+    else:
+        raise Exception('Cannot determine the strategy to use')
 
 
 def add_repeat_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:

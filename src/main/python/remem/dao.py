@@ -4,7 +4,8 @@ from uuid import uuid4
 from remem.cache import Cache
 from remem.common import values
 from remem.constants import CardTypes
-from remem.dtos import Folder, CardTranslate, Query, AnyCard, BaseCard, CardFillGaps, Task, TaskHistRec
+from remem.dtos import Folder, CardTranslate, Query, AnyCard, BaseCard, CardFillGaps, Task, TaskHistRec, \
+    TaskWithBaseCard
 
 
 def get_last_id(con: Connection) -> int:
@@ -163,6 +164,41 @@ def select_tasks_by_ids(con: Connection, task_ids: list[int]) -> list[Task]:
         task_ids_condition = ' or '.join(['id = ?'] * len(ids))
         for r in con.execute(f"""select * from TASK where {task_ids_condition}""", ids):
             result.append(Task(**r))
+    return result
+
+
+def select_tasks_with_base_cards_by_ids(con: Connection, task_ids: list[int]) -> list[TaskWithBaseCard]:
+    task_ids = list(set(task_ids))
+    result = []
+    step = 100
+    for idx in range(0, len(task_ids), step):
+        ids = task_ids[idx:idx + step]
+        task_ids_condition = ' or '.join(['t.id = ?'] * len(ids))
+        for r in con.execute(
+                f"""
+                    select 
+                        c.id c_id,
+                        c.ext_id c_ext_id,
+                        c.folder_id c_folder_id,
+                        c.card_type_id c_card_type_id,
+                        c.crt_time c_crt_time,
+                        t.id t_id,
+                        t.card_id t_card_id,
+                        t.task_type_id t_task_type_id 
+                    from TASK t left join CARD c on c.id = t.card_id where {task_ids_condition}
+                """, ids):
+            result.append(TaskWithBaseCard(
+                card=BaseCard(
+                    id=r['c_id'],
+                    ext_id=r['c_ext_id'],
+                    folder_id=r['c_folder_id'],
+                    card_type_id=r['c_card_type_id'],
+                    crt_time=r['c_crt_time'],
+                ),
+                id=r['id'],
+                card_id=r['card_id'],
+                task_type_id=r['task_type_id'],
+            ))
     return result
 
 

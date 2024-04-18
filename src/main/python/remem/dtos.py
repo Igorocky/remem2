@@ -65,6 +65,14 @@ class Task:
 
 
 @dataclass
+class TaskWithBaseCard:
+    id: int = -1
+    card_id: int = -1
+    task_type_id: int = -1
+    card: BaseCard = field(default_factory=lambda: BaseCard())
+
+
+@dataclass
 class TaskHistRec:
     time: int | None = None
     task_id: int = -1
