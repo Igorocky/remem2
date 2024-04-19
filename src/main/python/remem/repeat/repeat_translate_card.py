@@ -146,10 +146,10 @@ def process_user_input(
     ) -> TranslateTaskState:
         return dataclasses.replace(
             state,
-            first_user_translation=state.first_user_translation if first_user_translation is None else first_user_translation,
+            first_user_translation=first_user_translation or state.first_user_translation,
             user_translation=user_translation,
             correctness_indicator=correctness_indicator,
-            correct_translation_entered=state.correct_translation_entered or correct_translation_entered,
+            correct_translation_entered=correct_translation_entered or state.correct_translation_entered,
             enter_mark=state.enter_mark or enter_mark,
             show_answer=show_answer,
             edit_card=edit_card,

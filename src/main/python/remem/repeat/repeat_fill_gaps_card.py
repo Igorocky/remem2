@@ -171,10 +171,10 @@ def process_user_input(
     ) -> FillGapsTaskState:
         return dataclasses.replace(
             st,
-            first_user_inputs=first_user_inputs if first_user_inputs is not None else st.first_user_inputs,
+            first_user_inputs=first_user_inputs or st.first_user_inputs,
             user_input=user_input,
             correctness_indicator=correctness_indicator,
-            correct_text_entered=correct_text_entered if correct_text_entered is not None else st.correct_text_entered,
+            correct_text_entered=correct_text_entered or st.correct_text_entered,
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
@@ -195,7 +195,8 @@ def process_user_input(
                 if state.first_user_inputs[cur_gap_idx] is None:
                     first_user_inputs = state.first_user_inputs.copy()
                     first_user_inputs[cur_gap_idx] = ''
-                return update_state(state, first_user_inputs=first_user_inputs, show_answer=True)
+                    return update_state(state, first_user_inputs=first_user_inputs, show_answer=True)
+                return update_state(state, show_answer=True)
             case 'u':
                 return update_state(state, edit_card=True)
             case 's':

@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as et
 from typing import Tuple
 
 from remem.app_context import init_app_context
@@ -9,7 +9,7 @@ tmp_dir_path = '../../../temp/'
 
 
 def parse_words(file_path: str) -> list[Tuple[str, str, str, str]]:
-    tree = ET.parse(file_path)
+    tree = et.parse(file_path)
     root = tree.getroot()
     form1 = [elem.text for elem in root.findall(".//td[1]/span")]
     form2 = [elem.text for elem in root.findall(".//td[2]/span")]
