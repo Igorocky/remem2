@@ -14,12 +14,16 @@ from testutils import CacheMock
 from unittest import TestCase
 
 
-class ProcessUserInputTest(TestCase):
-    def _init_mocks(self):
+def make_simple_card() -> CardTranslate:
+    return CardTranslate(
+        lang1_id=0, read_only1=1, text1='text1', tran1='tran1',
+        lang2_id=1, read_only2=0, text2='text2', tran2='tran2')
+
+
+class MakeInitialStateTest(TestCase):
+    def _init_mocks(self) -> None:
         self.cache: Cache = CacheMock()  # type: ignore[assignment]
-        self.card = CardTranslate(
-            lang1_id=0, read_only1=0, text1='text1', tran1='tran1',
-            lang2_id=1, read_only2=1, text2='text2', tran2='tran2')
+        self.card = make_simple_card()
 
     def test_make_initial_state_dir12(self) -> None:
         # given
@@ -38,8 +42,8 @@ class ProcessUserInputTest(TestCase):
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=0, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=1, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
                 first_user_translation=None,
                 user_translation=None,
                 correctness_indicator=None,
@@ -67,8 +71,8 @@ class ProcessUserInputTest(TestCase):
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=1, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=0, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
                 first_user_translation=None,
                 user_translation=None,
                 correctness_indicator=None,
