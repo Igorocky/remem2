@@ -1,12 +1,10 @@
 import dataclasses
 from dataclasses import dataclass, field
 
-from remem.app_context import AppCtx
 from remem.cache import Cache
 from remem.console import Console
 from remem.constants import TaskTypes
-from remem.dao import select_card, insert_task_hist
-from remem.dtos import Task, CardTranslate, TaskHistRec
+from remem.dtos import Task, CardTranslate, TaskHistRec, AnyCard
 from remem.repeat import TaskContinuation, RepeatTaskState
 
 
@@ -47,9 +45,7 @@ def get_card_translate_side(cache: Cache, card: CardTranslate, dir12: bool, src:
         )
 
 
-def make_initial_state(ctx: AppCtx, task: Task) -> TranslateTaskState:
-    cache = ctx.cache
-    card = select_card(ctx.database.con, cache, task.card_id)
+def make_initial_state(cache: Cache, card: AnyCard, task: Task) -> TranslateTaskState:
     if not isinstance(card, CardTranslate):
         raise Exception(f'CardTranslate was expected but got {card}')
     dir12 = task.task_type_id == cache.task_types_si[TaskTypes.translate_12]
@@ -70,23 +66,21 @@ def read_mark(c: Console) -> float:
             pass
 
 
-def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
-    c = ctx.console
-
+def render_state(c: Console, state: TranslateTaskState) -> None:
     def rnd_commands() -> None:
         show_answer_cmd_descr = '' if state.dst.read_only or state.correct_translation_entered \
             else 'a - show answer    '
         c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics\n')
-        print()
+        c.print()
 
     def rnd_question() -> None:
         if state.dst.read_only:
             c.prompt(f'Recall translation to {state.dst.lang_str} for:')
         else:
             c.prompt(f'Write translation to {state.dst.lang_str} for:')
-        print()
-        print(state.src.text)
-        print()
+        c.print()
+        c.print(state.src.text)
+        c.print()
 
     def rnd_answer() -> None:
         if (state.show_answer
@@ -94,39 +88,39 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
                 or state.correct_translation_entered):
             # if not state.dst.read_only and state.first_user_translation != state.dst.text:
             c.info('The translation is:')
-            print()
-            print(state.dst.text)
+            c.print()
+            c.print(state.dst.text)
             if state.dst.tran != '':
-                print()
-                print(c.mark_info('Transcription: ') + state.dst.tran)
-            print()
+                c.print()
+                c.print(c.mark_info('Transcription: ') + state.dst.tran)
+            c.print()
 
     def rnd_user_translation() -> None:
         if state.user_translation is not None:
-            print(state.user_translation)
-            print()
+            c.print(state.user_translation)
+            c.print()
 
     def rnd_indicator() -> None:
         match state.correctness_indicator:
             case True:
                 c.success('V')
-                print()
+                c.print()
             case False:
                 c.error('X')
-                print()
+                c.print()
 
     def rnd_err_msg() -> None:
         if state.err_msg is not None:
             c.error(state.err_msg)
-            print()
+            c.print()
 
     def rnd_prompt() -> None:
         if state.enter_mark:
-            print(c.mark_prompt('Enter mark [1]: '), end='')
+            c.print(c.mark_prompt('Enter mark [1]: '), end='')
         elif state.correct_translation_entered:
-            print(c.mark_hint('(Press Enter to go to the next task)'))
+            c.print(c.mark_hint('(Press Enter to go to the next task)'))
         elif state.show_answer:
-            print(c.mark_hint('(press Enter to hide the answer)'))
+            c.print(c.mark_hint('(press Enter to hide the answer)'))
 
     rnd_commands()
     rnd_question()
@@ -138,7 +132,6 @@ def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
 
 
 def process_user_input(
-        ctx: AppCtx,
         state: TranslateTaskState,
         user_input: str
 ) -> TranslateTaskState:
@@ -152,6 +145,7 @@ def process_user_input(
             show_answer: bool = False,
             edit_card: bool = False,
             print_stats: bool = False,
+            hist_rec: TaskHistRec | None = None,
             err_msg: str | None = None,
             task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK,
     ) -> TranslateTaskState:
@@ -165,6 +159,7 @@ def process_user_input(
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
+            hist_rec=hist_rec,
             err_msg=err_msg,
             task_continuation=task_continuation
         )
@@ -175,8 +170,9 @@ def process_user_input(
                 return update_state(state, task_continuation=TaskContinuation.EXIT)
             case 'a' if not state.dst.read_only:
                 if state.first_user_translation is None:
-                    insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=''))
-                    return update_state(state, first_user_translation='', show_answer=True)
+                    return update_state(
+                        state, first_user_translation='', show_answer=True,
+                        hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=''))
                 else:
                     return update_state(state, show_answer=True)
             case 'u':
@@ -186,7 +182,6 @@ def process_user_input(
             case _:
                 return update_state(state, err_msg=f'Unknown command "{cmd}"')
 
-    con = ctx.database.con
     if state.enter_mark:
         try:
             user_input = user_input.strip()
@@ -196,9 +191,9 @@ def process_user_input(
             if not (0.0 <= mark <= 1.0):
                 return update_state(state, enter_mark=True,
                                     err_msg='The mark must be between 0.0 and 1.0 (inclusively)')
-            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
             return update_state(state, correct_translation_entered=True, enter_mark=False,
-                                task_continuation=TaskContinuation.NEXT_TASK)
+                                task_continuation=TaskContinuation.NEXT_TASK,
+                                hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
         except ValueError:
             return update_state(state)
     if user_input.startswith('`'):
@@ -215,12 +210,12 @@ def process_user_input(
             return update_state(state)
     elif user_input != state.dst.text:
         if state.first_user_translation is None:
-            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=user_input))
-            return update_state(state, first_user_translation=user_input, correctness_indicator=False)
+            return update_state(state, first_user_translation=user_input, correctness_indicator=False,
+                                hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=user_input))
         return update_state(state, correctness_indicator=False if user_input != '' else None)
     else:
         if state.first_user_translation is None:
-            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=1.0, note=user_input))
             return update_state(state, first_user_translation=user_input, correctness_indicator=True,
-                                correct_translation_entered=True)
+                                correct_translation_entered=True,
+                                hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=1.0, note=user_input))
         return update_state(state, correctness_indicator=True, correct_translation_entered=True)

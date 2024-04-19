@@ -1,11 +1,10 @@
 import dataclasses
 from dataclasses import dataclass, field
 
-from remem.app_context import AppCtx
+from remem.cache import Cache
 from remem.common import extract_gaps_from_text
-from remem.console import add_color
-from remem.dao import select_card, insert_task_hist
-from remem.dtos import Task, TaskHistRec, CardFillGaps
+from remem.console import add_color, Console
+from remem.dtos import Task, TaskHistRec, CardFillGaps, AnyCard
 from remem.repeat import TaskContinuation, RepeatTaskState
 
 orange = (255, 109, 10)
@@ -26,8 +25,7 @@ class FillGapsTaskState(RepeatTaskState):
     err_msg: str | None = None
 
 
-def make_initial_state(ctx: AppCtx, task: Task) -> FillGapsTaskState:
-    card = select_card(ctx.database.con, ctx.cache, task.card_id)
+def make_initial_state(cache: Cache, card: AnyCard, task: Task) -> FillGapsTaskState:
     if not isinstance(card, CardFillGaps):
         raise Exception(f'CardFillGaps was expected but got {card}')
     gaps = extract_gaps_from_text(card.text)
@@ -55,9 +53,7 @@ def make_initial_state(ctx: AppCtx, task: Task) -> FillGapsTaskState:
     )
 
 
-def render_state(ctx: AppCtx, state: FillGapsTaskState) -> None:
-    c = ctx.console
-
+def render_state(c: Console, state: FillGapsTaskState) -> None:
     if state.card_is_valid and not all(state.correct_text_entered):
         cur_gap_idx = state.correct_text_entered.index(False)
     else:
@@ -73,13 +69,13 @@ def render_state(ctx: AppCtx, state: FillGapsTaskState) -> None:
             status = c.mark_success('V')
             answer = state.answers[i]
             note = state.notes[i]
-            print(f'{status} #{i + 1} {answer}')
+            c.print(f'{status} #{i + 1} {answer}')
             if note != '':
-                print(f'    {note}')
+                c.print(f'    {note}')
         if cur_gap_idx is None and state.card.notes != '':
-            print()
-            print('Notes:')
-            print(state.card.notes)
+            c.print()
+            c.print('Notes:')
+            c.print(state.card.notes)
 
     def rnd_question() -> None:
         if cur_gap_idx is not None:
@@ -94,26 +90,26 @@ def render_state(ctx: AppCtx, state: FillGapsTaskState) -> None:
             else:
                 text_arr.append(add_color(orange, f'# {i + 1}'))
         text_arr.append(state.text_parts[-1])
-        print()
-        print(' '.join(text_arr).strip())
+        c.print()
+        c.print(' '.join(text_arr).strip())
         if cur_gap_idx is not None:
             hint = state.hints[cur_gap_idx]
             if hint != '':
-                print()
-                print(c.mark_info('Hint: ') + hint)
+                c.print()
+                c.print(c.mark_info('Hint: ') + hint)
 
     def rnd_answer_for_curr_gap() -> None:
         if state.show_answer and cur_gap_idx is not None:
             c.info(f'The answer for the gap #{cur_gap_idx + 1} is:\n')
-            print(state.answers[cur_gap_idx])
+            c.print(state.answers[cur_gap_idx])
             note = state.notes[cur_gap_idx]
             if note != '':
-                print()
-                print(c.mark_info('Note: ') + note)
+                c.print()
+                c.print(c.mark_info('Note: ') + note)
 
     def rnd_user_input() -> None:
         if state.user_input is not None:
-            print(state.user_input)
+            c.print(state.user_input)
 
     def rnd_indicator() -> None:
         match state.correctness_indicator:
@@ -136,24 +132,23 @@ def render_state(ctx: AppCtx, state: FillGapsTaskState) -> None:
 
     rnd_commands()
     if state.card_is_valid:
-        print()
+        c.print()
         rnd_answers()
-        print()
+        c.print()
         rnd_question()
-        print()
+        c.print()
         rnd_answer_for_curr_gap()
-        print()
+        c.print()
         rnd_user_input()
-        print()
+        c.print()
         rnd_indicator()
-        print()
+        c.print()
         rnd_err_msg()
-    print()
+    c.print()
     rnd_prompt()
 
 
 def process_user_input(
-        ctx: AppCtx,
         state: FillGapsTaskState,
         user_input: str
 ) -> FillGapsTaskState:
@@ -166,6 +161,7 @@ def process_user_input(
             show_answer: bool = False,
             edit_card: bool = False,
             print_stats: bool = False,
+            hist_rec: TaskHistRec | None = None,
             err_msg: str | None = None,
             task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK,
     ) -> FillGapsTaskState:
@@ -178,6 +174,7 @@ def process_user_input(
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
+            hist_rec=hist_rec or st.hist_rec,
             err_msg=err_msg,
             task_continuation=task_continuation,
         )
@@ -204,7 +201,6 @@ def process_user_input(
             case _:
                 return update_state(state, err_msg=f'Unknown command "{cmd}"')
 
-    con = ctx.database.con
     if user_input.startswith('`'):
         return process_command(user_input[1:])
     if cur_gap_idx is None:
@@ -224,7 +220,7 @@ def process_user_input(
             mark = (sum(1 if state.first_user_inputs[i] == state.answers[i] else 0 for i in range(num_of_gaps))
                     / num_of_gaps)
             note = ' '.join(f'exp: {state.answers[i]} & act: {state.first_user_inputs[i]}' for i in range(num_of_gaps))
-            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=note))
+            state = update_state(state, hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=note))
         correct_text_entered = state.correct_text_entered
         correct_text_entered[cur_gap_idx] = True
         return update_state(state, correctness_indicator=True, correct_text_entered=correct_text_entered)

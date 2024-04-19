@@ -1,6 +1,6 @@
 mypy:
     script text:
-        mypy --strict src/main/python
+        mypy --strict src/main/python src/test/python
     working directory:
         C:/..../projects/python/remem2
 
@@ -9,3 +9,8 @@ run all tests:
         python -m unittest discover -p '*.py' -v -s remem
     working directory:
         C:/..../projects/python/remem2/src/main/python
+    or
+    script text:
+        python -m unittest discover -p '*.py' -v
+    working directory:
+        C:/..../projects/python/remem2/src/test/python

@@ -1,7 +1,6 @@
 import re
 import time
 from typing import Callable
-from unittest import TestCase
 
 from remem.app_context import AppCtx
 from remem.common import duration_str_to_seconds, seconds_to_duration_str
@@ -21,25 +20,6 @@ def get_bucket_number(hist: list[TaskHistRec], max_num: int) -> int:
         else:
             break
     return res
-
-
-class GetBucketNumberTest(TestCase):
-    def test_get_bucket_number(self) -> None:
-        def make_hist(marks: list[float]) -> list[TaskHistRec]:
-            return [TaskHistRec(mark=mark) for mark in marks]
-
-        self.assertEqual(get_bucket_number([], max_num=10), 0)
-        self.assertEqual(get_bucket_number(make_hist([0.0]), max_num=10), 0)
-        self.assertEqual(get_bucket_number(make_hist([1.0]), max_num=10), 1)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 0.0]), max_num=10), 1)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0]), max_num=10), 2)
-        self.assertEqual(get_bucket_number(make_hist([0.0, 1.0]), max_num=10), 0)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 0.0, 1.0]), max_num=10), 1)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0]), max_num=10), 3)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 0.0]), max_num=10), 2)
-        self.assertEqual(get_bucket_number(make_hist([0.0, 1.0, 1.0, 1.0]), max_num=10), 0)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0, 1.0]), max_num=10), 4)
-        self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0, 1.0]), max_num=3), 3)
 
 
 def load_buckets(ctx: AppCtx, task_ids: list[int], num_of_buckets: int) -> list[list[TaskWithHist]]:

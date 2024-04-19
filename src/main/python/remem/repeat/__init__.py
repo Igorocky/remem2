@@ -25,6 +25,7 @@ class RepeatTaskState:
     show_answer: bool = False
     edit_card: bool = False
     print_stats: bool = False
+    hist_rec: TaskHistRec | None = None
     task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK
 
 

@@ -59,12 +59,6 @@ def arr_str_matches_pat(arr: list[str], pat: CmdPat) -> bool:
     return go(0, 0)
 
 
-class ArrStrMatchesPatTest(TestCase):
-    def test_arr_str_matches_pat(self) -> None:
-        self.assertTrue(arr_str_matches_pat(['make', 'new', 'card', 'translate'], make_cmd_pat('mak n car tr')))
-        self.assertTrue(arr_str_matches_pat(['make', 'new', 'card', 'translate'], make_cmd_pat('mak car tr')))
-        self.assertTrue(arr_str_matches_pat(['make', 'new', 'card', 'translate'], make_cmd_pat('ake car ')))
-        self.assertTrue(arr_str_matches_pat(['make', 'new', 'card', 'translate'], make_cmd_pat('ake nsla ')))
 
 
 def cmd_matches_pat(cmd: Cmd, pat: CmdPat) -> bool:

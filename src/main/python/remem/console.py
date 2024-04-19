@@ -2,7 +2,6 @@ import os
 import re
 import traceback
 from typing import Tuple
-from unittest import TestCase
 
 from remem.app_settings import AppSettings
 
@@ -23,18 +22,6 @@ def parse_idxs(inp: str) -> list[int]:
             start, end = grp.split('-')
             res.extend(range(int(start), int(end) + 1))
     return res
-
-
-class ParseIdxsTest(TestCase):
-    def test_parse_idxs(self) -> None:
-        self.assertEqual(parse_idxs(''), [])
-        self.assertEqual(parse_idxs('7'), [7])
-        self.assertEqual(parse_idxs('7 15'), [7, 15])
-        self.assertEqual(parse_idxs('7 15'), [7, 15])
-        self.assertEqual(parse_idxs('7 15 20'), [7, 15, 20])
-        self.assertEqual(parse_idxs('4-8'), [4, 5, 6, 7, 8])
-        self.assertEqual(parse_idxs('1 4-8 10'), [1, 4, 5, 6, 7, 8, 10])
-        self.assertEqual(parse_idxs('abc 4'), [])
 
 
 def _select_options(options: list[str], single: bool) -> list[int]:
@@ -108,6 +95,9 @@ class Console:
     def input(self, prompt: str) -> str:
         print(self.mark_prompt(prompt), end='')
         return input()
+
+    def print(self, text: str = '', end: str = '\n') -> None:
+        print(text, end=end)
 
     def error(self, text: str) -> None:
         print(self.mark_error(text))

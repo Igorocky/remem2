@@ -8,6 +8,7 @@ from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
 from remem.console import select_multiple_options, select_single_option, clear_screen
 from remem.constants import TaskTypes
+from remem.dao import insert_task_hist, select_card
 from remem.data_commands import edit_card_by_id
 from remem.dtos import Task
 from remem.repeat import TaskContinuation
@@ -153,7 +154,8 @@ def select_task_ids(ctx: AppCtx, folder_ids: list[int], task_types: list[TaskTyp
 
 
 def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
-    match ctx.cache.task_types_is[task.task_type_id]:
+    cache = ctx.cache
+    match cache.task_types_is[task.task_type_id]:
         case TaskTypes.translate_12 | TaskTypes.translate_21:
             make_initial_state = repeat_translate_card.make_initial_state
             render_state = repeat_translate_card.render_state
@@ -164,11 +166,15 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> Tas
             process_user_input = repeat_fill_gaps_card.process_user_input  # type: ignore[assignment]
         case _:
             raise Exception(f'Unexpected type of task: {task}')
-    state = make_initial_state(ctx, task)
+    con = ctx.database.con
+    card = select_card(con, cache, task.card_id)
+    if card is None:
+        raise Exception(f'Cannot find a card by id {task.card_id}')
+    state = make_initial_state(cache, card, task)
     while True:
         clear_screen()
-        render_state(ctx, state)
-        state = process_user_input(ctx, state, input())
+        render_state(ctx.console, state)
+        state = process_user_input(state, input())
         match state.task_continuation:
             case TaskContinuation.CONTINUE_TASK:
                 if state.edit_card:
@@ -178,6 +184,9 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> Tas
                     state.print_stats = False
                     clear_screen()
                     print_stats()
+                if state.hist_rec:
+                    insert_task_hist(con, state.hist_rec)
+                    state.hist_rec = None
             case act:
                 return act
 

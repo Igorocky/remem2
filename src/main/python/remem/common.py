@@ -3,7 +3,6 @@ import math
 import re
 import time
 from typing import TypeVar, Callable, Generic, Tuple
-from unittest import TestCase
 
 T = TypeVar('T')
 K = TypeVar('K')
@@ -80,16 +79,6 @@ def duration_str_to_seconds(dur_str: str) -> int:
         raise Exception(f'Unexpected format of duration "{dur_str}"')
 
 
-class DurationStrToSecondsTest(TestCase):
-    def test_duration_str_to_seconds(self) -> None:
-        self.assertEqual(duration_str_to_seconds('1m'), 60)
-        self.assertEqual(duration_str_to_seconds('16m'), 16 * 60)
-        self.assertEqual(duration_str_to_seconds('1h'), 60 * 60)
-        self.assertEqual(duration_str_to_seconds('32h'), 32 * 60 * 60)
-        self.assertEqual(duration_str_to_seconds('1d'), 60 * 60 * 24)
-        self.assertEqual(duration_str_to_seconds('7d'), 7 * 60 * 60 * 24)
-
-
 def seconds_to_duration_str(seconds: int) -> str:
     sign_str = '' if seconds >= 0 else '-'
     seconds = int(math.fabs(seconds))
@@ -116,26 +105,6 @@ def seconds_to_duration_str(seconds: int) -> str:
     return sign_str + seconds_str
 
 
-class SecondsToDurationStrTest(TestCase):
-    def test_seconds_to_duration_str(self) -> None:
-        self.assertEqual(seconds_to_duration_str(0), '0s')
-        self.assertEqual(seconds_to_duration_str(27), '27s')
-
-        self.assertEqual(seconds_to_duration_str(duration_str_to_seconds('1m') + 8), '1m8s')
-        self.assertEqual(
-            seconds_to_duration_str(duration_str_to_seconds('8h') + duration_str_to_seconds('13m') + 49), '8h13m')
-        self.assertEqual(
-            seconds_to_duration_str(duration_str_to_seconds('17d')
-                                    + duration_str_to_seconds('9h') + duration_str_to_seconds('25m') + 33), '17d9h')
-
-        self.assertEqual(seconds_to_duration_str(duration_str_to_seconds('1m') + 0), '1m')
-        self.assertEqual(
-            seconds_to_duration_str(duration_str_to_seconds('8h') + duration_str_to_seconds('0m') + 0), '8h')
-        self.assertEqual(
-            seconds_to_duration_str(duration_str_to_seconds('17d')
-                                    + duration_str_to_seconds('0h') + duration_str_to_seconds('0m') + 0), '17d')
-
-
 def extract_gaps_from_text(text: str) -> Tuple[list[str], list[str], list[str], list[str]] | None:
     text = text.strip()
     if len(text) == 0:
@@ -159,22 +128,3 @@ def extract_gaps_from_text(text: str) -> Tuple[list[str], list[str], list[str], 
             hints.append(gap[1].strip() if len(gap) > 1 else '')
             notes.append(gap[2].strip() if len(gap) > 2 else '')
     return text_parts, answers, hints, notes
-
-
-class ExtractGapsFromTextTest(TestCase):
-    def test_extract_gaps_from_text(self) -> None:
-        self.assertEqual(None, extract_gaps_from_text('abc def ghi'))
-        self.assertEqual(None, extract_gaps_from_text('abc [[def ghi'))
-        self.assertEqual((['abc', 'ghi'], ['def'], [''], ['']), extract_gaps_from_text('abc [[def]] ghi'))
-        self.assertEqual(
-            (['abc', 'ghi', 'mno'], ['def', 'jkl'], ['', '123'], ['', '456']),
-            extract_gaps_from_text('abc [[def]] ghi [[jkl|123|456]] mno')
-        )
-        self.assertEqual(
-            (['abc', 'ghi', ''], ['def', 'jkl'], ['', '123'], ['', '456']),
-            extract_gaps_from_text('abc [[def]] ghi [[jkl|123|456]]')
-        )
-        self.assertEqual(
-            (['', 'ghi', 'mno'], ['def', 'jkl'], ['', '123'], ['', '456']),
-            extract_gaps_from_text('[[def]] ghi [[jkl|123|456]] mno')
-        )
