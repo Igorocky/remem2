@@ -152,15 +152,12 @@ def extract_gaps_from_text(text: str) -> Tuple[list[str], list[str], list[str], 
             text_parts.append(part.strip())
         else:
             gap = part.split('|')
-            answers.append(gap[0].strip())
-            if len(gap) > 1:
-                hints.append(gap[1].strip())
-            else:
-                hints.append('')
-            if len(gap) > 2:
-                notes.append(gap[2].strip())
-            else:
-                notes.append('')
+            answer = gap[0].strip()
+            if answer == '':
+                return None
+            answers.append(answer)
+            hints.append(gap[1].strip() if len(gap) > 1 else '')
+            notes.append(gap[2].strip() if len(gap) > 2 else '')
     return text_parts, answers, hints, notes
 
 
