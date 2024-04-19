@@ -176,6 +176,7 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> Tas
                     edit_card_by_id(ctx, state.task.card_id)
                 if state.print_stats:
                     state.print_stats = False
+                    clear_screen()
                     print_stats()
             case act:
                 return act
