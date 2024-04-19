@@ -15,7 +15,7 @@ from remem.constants import TaskTypes
 from remem.dao import select_task_hist, select_tasks_with_base_cards_by_ids
 from remem.dtos import Task, TaskHistRec, TaskWithBaseCard
 from remem.repeat import TaskContinuation
-from remem.repeat.repeat_translate_card import repeat_translate_task, ask_to_press_enter
+from remem.repeat.repeat_translate_card import repeat_translate_task
 
 
 @dataclass
@@ -159,7 +159,7 @@ def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> N
             f'{str(bucket_idx).rjust(2)}: {str(len(bucket)).rjust(4)} '
             f'{str(len(active)).rjust(4)} {str(len(waiting)).rjust(4)} {time_to_wait_str}'
         )
-    ask_to_press_enter(ctx.console)
+    ctx.console.ask_to_press_enter()
 
 
 def repeat_tasks_with_buckets(ctx: AppCtx, task_ids: list[int], buckets_descr: str) -> None:

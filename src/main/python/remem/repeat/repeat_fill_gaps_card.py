@@ -165,10 +165,11 @@ def process_user_input(
         user_input: str
 ) -> FillGapsTaskState:
     def update_state(
-            first_user_inputs: list[str | None] = state.first_user_inputs,
+            st: FillGapsTaskState,
+            first_user_inputs: list[str | None] | None = None,
             user_input: None | str = None,
             correctness_indicator: bool | None = None,
-            correct_text_entered: list[bool] = state.correct_text_entered,
+            correct_text_entered: list[bool] | None = None,
             show_answer: bool = False,
             edit_card: bool = False,
             print_stats: bool = False,
@@ -176,11 +177,11 @@ def process_user_input(
             task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK,
     ) -> FillGapsTaskState:
         return dataclasses.replace(
-            state,
-            first_user_inputs=first_user_inputs,
+            st,
+            first_user_inputs=first_user_inputs if first_user_inputs is not None else st.first_user_inputs,
             user_input=user_input,
             correctness_indicator=correctness_indicator,
-            correct_text_entered=correct_text_entered,
+            correct_text_entered=correct_text_entered if correct_text_entered is not None else st.correct_text_entered,
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
@@ -196,58 +197,46 @@ def process_user_input(
     def process_command(cmd: str) -> FillGapsTaskState:
         match cmd:
             case 'e':
-                return update_state(task_continuation=TaskContinuation.EXIT)
+                return update_state(state, task_continuation=TaskContinuation.EXIT)
             case 'a' if cur_gap_idx is not None:
-                first_user_inputs = state.first_user_inputs.copy()
-                first_user_inputs[cur_gap_idx] = ''
-                return update_state(first_user_inputs=first_user_inputs, show_answer=True)
+                if state.first_user_inputs[cur_gap_idx] is None:
+                    first_user_inputs = state.first_user_inputs.copy()
+                    first_user_inputs[cur_gap_idx] = ''
+                return update_state(state, first_user_inputs=first_user_inputs, show_answer=True)
             case 'u':
-                return update_state(edit_card=True)
+                return update_state(state, edit_card=True)
             case 's':
-                return update_state(print_stats=True)
+                return update_state(state, print_stats=True)
             case _:
-                return update_state(err_msg=f'Unknown command "{cmd}"')
+                return update_state(state, err_msg=f'Unknown command "{cmd}"')
 
     con = ctx.database.con
-    if state.enter_mark:
-        try:
-            user_input = user_input.strip()
-            if user_input.startswith('`'):
-                return process_command(user_input[1:])
-            mark = 1.0 if user_input == '' else float(user_input)
-            if not (0.0 <= mark <= 1.0):
-                return update_state(enter_mark=True, err_msg='The mark must be between 0.0 and 1.0 (inclusively)')
-            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
-            return update_state(correct_translation_entered=True, enter_mark=False,
-                                task_continuation=TaskContinuation.NEXT_TASK)
-        except ValueError:
-            return update_state()
     if user_input.startswith('`'):
         return process_command(user_input[1:])
-    if state.correct_translation_entered:
+    if cur_gap_idx is None:
         if user_input == '':
-            return update_state(task_continuation=TaskContinuation.NEXT_TASK)
+            return update_state(state, task_continuation=TaskContinuation.NEXT_TASK)
         else:
-            return update_state()
-    if state.dst.read_only:
-        if state.first_user_translation is None:
-            return update_state(first_user_translation='', enter_mark=True)
-        else:
-            return update_state()
-    elif user_input != state.dst.text:
-        if state.first_user_translation is None:
-            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=user_input))
-            return update_state(first_user_translation=user_input, correctness_indicator=False)
-        return update_state(correctness_indicator=False if user_input != '' else None)
+            return update_state(state)
+    if state.first_user_inputs[cur_gap_idx] is None:
+        first_user_inputs = state.first_user_inputs.copy()
+        first_user_inputs[cur_gap_idx] = user_input
+        state = update_state(state, first_user_inputs=first_user_inputs)
+    if user_input != state.answers[cur_gap_idx]:
+        return update_state(state, correctness_indicator=False if user_input != '' else None)
     else:
-        if state.first_user_translation is None:
-            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=1.0, note=user_input))
-            return update_state(first_user_translation=user_input, correctness_indicator=True,
-                                correct_translation_entered=True)
-        return update_state(correctness_indicator=True, correct_translation_entered=True)
+        num_of_gaps = len(state.answers)
+        if cur_gap_idx == num_of_gaps - 1:
+            mark = (sum(1 if state.first_user_inputs[i] == state.answers[i] else 0 for i in range(num_of_gaps))
+                    / num_of_gaps)
+            note = ' '.join(f'exp: {state.answers[i]} & act: {state.first_user_inputs[i]}' for i in range(num_of_gaps))
+            insert_task_hist(con, TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=note))
+        correct_text_entered = state.correct_text_entered
+        correct_text_entered[cur_gap_idx] = True
+        return update_state(state, correctness_indicator=True, correct_text_entered=correct_text_entered)
 
 
-def repeat_translate_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
+def repeat_fill_gaps_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
     state = make_initial_state(ctx, task)
     while True:
         clear_screen()
