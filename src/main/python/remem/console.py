@@ -128,3 +128,6 @@ class Console:
         self.error(str(ex))
         if self._app_settings.print_stack_traces_for_exceptions:
             print(traceback.format_exc())
+
+    def ask_to_press_enter(self) -> None:
+        self.input('Press Enter')

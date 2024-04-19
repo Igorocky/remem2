@@ -1,35 +1,29 @@
 import dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 from remem.app_context import AppCtx
-from remem.cache import Cache
-from remem.console import Console, clear_screen
-from remem.constants import TaskTypes
+from remem.common import extract_gaps_from_text
+from remem.console import clear_screen
 from remem.dao import select_card, insert_task_hist
 from remem.data_commands import edit_card_by_id
-from remem.dtos import Task, CardTranslate, TaskHistRec
+from remem.dtos import Task, TaskHistRec, CardFillGaps
 from remem.repeat import TaskContinuation
 
 
 @dataclass
-class CardTranslateSide:
-    lang_str: str = ''
-    read_only: int = 0
-    text: str = ''
-    tran: str = ''
-
-
-@dataclass
-class TranslateTaskState:
+class FillGapsTaskState:
     task: Task
-    src: CardTranslateSide
-    dst: CardTranslateSide
-    first_user_translation: None | str = None
-    user_translation: None | str = None
+    card: CardFillGaps
+    card_is_valid: bool
+    text_parts: list[str]
+    answers: list[str]
+    hints: list[str]
+    notes: list[str]
+    first_user_inputs: list[str | None] = field(default_factory=lambda: [])
+    user_input: None | str = None
     correctness_indicator: bool | None = None
-    correct_translation_entered: bool = False
-    enter_mark: bool = False
+    correct_text_entered: list[bool] = field(default_factory=lambda: [])
     show_answer: bool = False
     edit_card: bool = False
     print_stats: bool = False
@@ -37,74 +31,77 @@ class TranslateTaskState:
     task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK
 
 
-def get_card_translate_side(cache: Cache, card: CardTranslate, dir12: bool, src: bool) -> CardTranslateSide:
-    if dir12 and src or not dir12 and not src:
-        return CardTranslateSide(
-            lang_str=cache.lang_is[card.lang1_id],
-            read_only=card.read_only1,
-            text=card.text1,
-            tran=card.tran1
-        )
-    else:
-        return CardTranslateSide(
-            lang_str=cache.lang_is[card.lang2_id],
-            read_only=card.read_only2,
-            text=card.text2,
-            tran=card.tran2
-        )
-
-
-def make_initial_state(ctx: AppCtx, task: Task) -> TranslateTaskState:
+def make_initial_state(ctx: AppCtx, task: Task) -> FillGapsTaskState:
     con = ctx.database.con
     cache = ctx.cache
     card = select_card(con, cache, task.card_id)
-    if not isinstance(card, CardTranslate):
-        raise Exception(f'CardTranslate was expected but got {card}')
-    dir12 = task.task_type_id == cache.task_types_si[TaskTypes.translate_12]
-    src = get_card_translate_side(cache, card, dir12=dir12, src=True)
-    dst = get_card_translate_side(cache, card, dir12=dir12, src=False)
-    return TranslateTaskState(task=task, src=src, dst=dst, )
+    if not isinstance(card, CardFillGaps):
+        raise Exception(f'CardFillGaps was expected but got {card}')
+    gaps = extract_gaps_from_text(card.text)
+    if gaps is None:
+        return FillGapsTaskState(
+            task=task,
+            card=card,
+            card_is_valid=False,
+            text_parts=[],
+            answers=[],
+            hints=[],
+            notes=[],
+        )
+    text_parts, answers, hints, notes = gaps
+    return FillGapsTaskState(
+        task=task,
+        card=card,
+        card_is_valid=True,
+        text_parts=text_parts,
+        answers=answers,
+        hints=hints,
+        notes=notes,
+        first_user_inputs=[None for _ in range(len(gaps))],
+        correct_text_entered=[False for _ in range(len(gaps))],
+    )
 
 
-def read_mark(c: Console) -> float:
-    while True:
-        try:
-            inp = c.input('Your mark [1.0]: ')
-            if inp.strip() == '':
-                return 1.0
-            mark = float(inp)
-            return min(max(0.0, mark), 1.0)
-        except ValueError:
-            pass
-
-
-def render_state(ctx: AppCtx, state: TranslateTaskState) -> None:
+def render_state(ctx: AppCtx, state: FillGapsTaskState) -> None:
     c = ctx.console
 
     def rnd_commands() -> None:
-        show_answer_cmd_descr = 'a - show answer    ' if not state.dst.read_only else ''
-        c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics\n')
+        c.hint(f'a - show answer    e - exit    u - update card    s - show statistics\n')
 
     def rnd_question() -> None:
-        if state.dst.read_only:
-            print(c.mark_prompt(f'Recall translation to {state.dst.lang_str} for:\n'))
+        if not all(state.correct_text_entered):
+            c.prompt(f'Fill the gap #{state.correct_text_entered.index(False) + 1}:')
         else:
-            print(c.mark_prompt(f'Write translation to {state.dst.lang_str} for:\n'))
-        print(state.src.text + '\n')
+            c.info('All gaps are filled')
+        text_arr = []
+        for i, ans in enumerate(state.answers):
+            text_arr.append(state.text_parts[i])
+            if state.correct_text_entered[i]:
+                text_arr.append(ans)
+            else:
+                text_arr.append('#' + str(i + 1))
+        text_arr.append(state.text_parts[-1])
+        print()
+        print(' '.join(text_arr))
+        print()
+        if False in state.correct_text_entered:
+            gap_idx = state.correct_text_entered.index(False)
+            hint = state.hints[gap_idx]
+            if hint != '':
+                print(c.mark_info('Hint: ') + hint)
+                print()
 
     def rnd_answer() -> None:
-        if (state.show_answer
-                or state.dst.read_only and state.first_user_translation is not None
-                or state.correct_translation_entered):
-            if not state.dst.read_only and state.first_user_translation != state.dst.text:
-                c.info('The translation is:\n')
-            print(state.dst.text + '\n')
-            if state.dst.tran != '':
-                print(c.mark_info('Transcription: ') + state.dst.tran + '\n')
+        if state.show_answer and not all(state.correct_text_entered):
+            gap_idx = state.correct_text_entered.index(False)
+            gap_num = gap_idx + 1
+            c.info(f'The answer for the gap #{gap_num} is:\n')
+            print(state.answers[gap_idx])
+            print(state.notes[gap_idx] + '\n')
 
     def rnd_user_translation() -> None:
-        if state.user_translation is not None:
-            print(state.user_translation)
+        if state.user_input is not None:
+            print(state.user_input)
 
     def rnd_indicator() -> None:
         match state.correctness_indicator:

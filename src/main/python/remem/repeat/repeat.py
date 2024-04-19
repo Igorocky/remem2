@@ -177,6 +177,10 @@ def repeat_tasks_with_buckets(ctx: AppCtx, task_ids: list[int], buckets_descr: s
     while act != TaskContinuation.EXIT:
         if len(tasks) == 0:
             tasks = get_next_tasks_to_repeat()
+            if len(tasks) == 0:
+                clear_screen()
+                print_stats(ctx, task_ids, bucket_delays)
+                continue
         act = repeat_task(
             ctx,
             Task(**{k: v for k, v in tasks.pop(0).task.__dict__.items() if k != 'card'}),
