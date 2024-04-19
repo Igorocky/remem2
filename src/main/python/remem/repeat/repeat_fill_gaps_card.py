@@ -1,36 +1,29 @@
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Callable
 
 from remem.app_context import AppCtx
 from remem.common import extract_gaps_from_text
-from remem.console import clear_screen, add_color
+from remem.console import add_color
 from remem.dao import select_card, insert_task_hist
-from remem.data_commands import edit_card_by_id
 from remem.dtos import Task, TaskHistRec, CardFillGaps
-from remem.repeat import TaskContinuation
+from remem.repeat import TaskContinuation, RepeatTaskState
 
 orange = (255, 109, 10)
 
 
 @dataclass
-class FillGapsTaskState:
-    task: Task
-    card: CardFillGaps
-    card_is_valid: bool
-    text_parts: list[str]
-    answers: list[str]
-    hints: list[str]
-    notes: list[str]
+class FillGapsTaskState(RepeatTaskState):
+    card: CardFillGaps = field(default_factory=lambda: CardFillGaps())
+    card_is_valid: bool = False
+    text_parts: list[str] = field(default_factory=lambda: [])
+    answers: list[str] = field(default_factory=lambda: [])
+    hints: list[str] = field(default_factory=lambda: [])
+    notes: list[str] = field(default_factory=lambda: [])
     first_user_inputs: list[str | None] = field(default_factory=lambda: [])
     user_input: None | str = None
     correctness_indicator: bool | None = None
     correct_text_entered: list[bool] = field(default_factory=lambda: [])
-    show_answer: bool = False
-    edit_card: bool = False
-    print_stats: bool = False
     err_msg: str | None = None
-    task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK
 
 
 def make_initial_state(ctx: AppCtx, task: Task) -> FillGapsTaskState:
@@ -234,21 +227,3 @@ def process_user_input(
         correct_text_entered = state.correct_text_entered
         correct_text_entered[cur_gap_idx] = True
         return update_state(state, correctness_indicator=True, correct_text_entered=correct_text_entered)
-
-
-def repeat_fill_gaps_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
-    state = make_initial_state(ctx, task)
-    while True:
-        clear_screen()
-        render_state(ctx, state)
-        state = process_user_input(ctx, state, input())
-        match state.task_continuation:
-            case TaskContinuation.CONTINUE_TASK:
-                if state.edit_card:
-                    state.edit_card = False
-                    edit_card_by_id(ctx, state.task.card_id)
-                if state.print_stats:
-                    state.print_stats = False
-                    print_stats()
-            case act:
-                return act

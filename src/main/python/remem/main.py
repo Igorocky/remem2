@@ -2,7 +2,7 @@ import sys
 
 sys.path.append('src/main/python')
 
-from remem.repeat.repeat import add_repeat_commands
+from remem.repeat.commands import add_repeat_commands
 from remem.app_context import init_app_context
 from remem.commands import CollectionOfCommands, Cmd
 from remem.console import Console, select_single_option

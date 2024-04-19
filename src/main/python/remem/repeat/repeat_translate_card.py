@@ -1,15 +1,13 @@
 import dataclasses
-from dataclasses import dataclass
-from typing import Callable
+from dataclasses import dataclass, field
 
 from remem.app_context import AppCtx
 from remem.cache import Cache
-from remem.console import Console, clear_screen
+from remem.console import Console
 from remem.constants import TaskTypes
 from remem.dao import select_card, insert_task_hist
-from remem.data_commands import edit_card_by_id
 from remem.dtos import Task, CardTranslate, TaskHistRec
-from remem.repeat import TaskContinuation
+from remem.repeat import TaskContinuation, RepeatTaskState
 
 
 @dataclass
@@ -21,20 +19,15 @@ class CardTranslateSide:
 
 
 @dataclass
-class TranslateTaskState:
-    task: Task
-    src: CardTranslateSide
-    dst: CardTranslateSide
+class TranslateTaskState(RepeatTaskState):
+    src: CardTranslateSide = field(default_factory=lambda: CardTranslateSide())
+    dst: CardTranslateSide = field(default_factory=lambda: CardTranslateSide())
     first_user_translation: None | str = None
     user_translation: None | str = None
     correctness_indicator: bool | None = None
     correct_translation_entered: bool = False
     enter_mark: bool = False
-    show_answer: bool = False
-    edit_card: bool = False
-    print_stats: bool = False
     err_msg: str | None = None
-    task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK
 
 
 def get_card_translate_side(cache: Cache, card: CardTranslate, dir12: bool, src: bool) -> CardTranslateSide:
@@ -219,21 +212,3 @@ def process_user_input(
             return update_state(first_user_translation=user_input, correctness_indicator=True,
                                 correct_translation_entered=True)
         return update_state(correctness_indicator=True, correct_translation_entered=True)
-
-
-def repeat_translate_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
-    state = make_initial_state(ctx, task)
-    while True:
-        clear_screen()
-        render_state(ctx, state)
-        state = process_user_input(ctx, state, input())
-        match state.task_continuation:
-            case TaskContinuation.CONTINUE_TASK:
-                if state.edit_card:
-                    state.edit_card = False
-                    edit_card_by_id(ctx, state.task.card_id)
-                if state.print_stats:
-                    state.print_stats = False
-                    print_stats()
-            case act:
-                return act
