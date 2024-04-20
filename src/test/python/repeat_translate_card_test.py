@@ -809,7 +809,96 @@ text1
         )
 
     def test_for_readonly_user_presses_enter_for_mark_1(self) -> None:
-        raise Exception('not implemented')
+        # given
+        task_id = 753
+        self._init_mocks()
+        card = make_simple_card()
+        task = Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21])
+        state = make_initial_state(self.cache, card, task)
+
+        # when render the initial state
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}e - exit    u - update card    s - show statistics{end}
+
+{prompt}Recall translation to PL for:{end}
+
+text2
+
+""",
+            self._get_text_printed_to_console()
+        )
+
+        # when press Enter to show the correct answer
+        state = process_user_input(state, '')
+
+        # then
+        self.assertEqual(
+            TranslateTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                first_user_translation='',
+                user_translation=None,
+                correctness_indicator=None,
+                correct_translation_entered=False,
+                enter_mark=True,
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when render the state after the correct translation is shown
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}e - exit    u - update card    s - show statistics{end}
+
+{prompt}Recall translation to PL for:{end}
+
+text2
+
+{info}Translation:{end}
+
+text1
+
+{info}Transcription: {end}tran1
+
+{prompt}Enter mark [1]: {end}""",
+            self._get_text_printed_to_console()
+        )
+
+        # when press Enter to set mark 1
+        state = process_user_input(state, '')
+
+        # then
+        self.assertEqual(
+            TranslateTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=TaskHistRec(task_id=task_id, mark=1.0, note=''),
+                task_continuation=TaskContinuation.NEXT_TASK,
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                first_user_translation='',
+                user_translation=None,
+                correctness_indicator=None,
+                correct_translation_entered=True,
+                enter_mark=True,
+                err_msg=None,
+            ),
+            state
+        )
 
     def test_for_readonly_user_selects_a_command_before_revealing_the_answer(self) -> None:
         raise Exception('not implemented')

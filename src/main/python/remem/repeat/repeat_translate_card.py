@@ -193,8 +193,7 @@ def process_user_input(
             if not (0.0 <= mark <= 1.0):
                 return update_state(state, enter_mark=True,
                                     err_msg='The mark must be between 0.0 and 1.0 (inclusively)')
-            return update_state(state, correct_translation_entered=True, enter_mark=False,
-                                task_continuation=TaskContinuation.NEXT_TASK,
+            return update_state(state, correct_translation_entered=True, task_continuation=TaskContinuation.NEXT_TASK,
                                 hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=''))
         except ValueError:
             return update_state(state)
