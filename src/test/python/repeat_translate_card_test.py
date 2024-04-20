@@ -25,17 +25,13 @@ def make_simple_card() -> CardTranslate:
         lang2_id=1, read_only2=0, text2='text2', tran2='tran2')
 
 
-end = re.match(r'^.*some_text(.*)$', Console(AppSettings()).mark_hint('some_text')).group(1)  # type: ignore[union-attr]
-hint = re.match(r'^(.*)some_text.*$', Console(AppSettings()).mark_hint('some_text')).group(
-    1)  # type: ignore[union-attr]
-error = re.match(r'^(.*)some_text.*$', Console(AppSettings()).mark_error('some_text')).group(
-    1)  # type: ignore[union-attr]
-success = re.match(r'^(.*)some_text.*$', Console(AppSettings()).mark_success('some_text')).group(
-    1)  # type: ignore[union-attr]
-info = re.match(r'^(.*)some_text.*$', Console(AppSettings()).mark_info('some_text')).group(
-    1)  # type: ignore[union-attr]
-prompt = re.match(r'^(.*)some_text.*$', Console(AppSettings()).mark_prompt('some_text')).group(
-    1)  # type: ignore[union-attr]
+_console = Console(AppSettings())
+end = re.match(r'^.*some_text(.*)$', _console.mark_hint('some_text')).group(1)  # type: ignore[union-attr]
+hint = re.match(r'^(.*)some_text.*$', _console.mark_hint('some_text')).group(1)  # type: ignore[union-attr]
+error = re.match(r'^(.*)some_text.*$', _console.mark_error('some_text')).group(1)  # type: ignore[union-attr]
+success = re.match(r'^(.*)some_text.*$', _console.mark_success('some_text')).group(1)  # type: ignore[union-attr]
+info = re.match(r'^(.*)some_text.*$', _console.mark_info('some_text')).group(1)  # type: ignore[union-attr]
+prompt = re.match(r'^(.*)some_text.*$', _console.mark_prompt('some_text')).group(1)  # type: ignore[union-attr]
 
 
 class MakeInitialStateTest(TestCase):
@@ -120,7 +116,7 @@ class FlowTest(TestCase):
         task = Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12])
         state = make_initial_state(self.cache, card, task)
 
-        # when
+        # when render the initial state
         render_state(self.console, state)
 
         # then
@@ -135,7 +131,7 @@ text1
             self.get_text_printed_to_console()
         )
 
-        # when
+        # when the first input is correct
         state = process_user_input(state, 'text2')
 
         # then
@@ -159,7 +155,7 @@ text1
             state
         )
 
-        # when
+        # when render the state after the first input is correct
         state.hist_rec = None
         render_state(self.console, state)
 
@@ -181,7 +177,7 @@ text2
             self.get_text_printed_to_console()
         )
 
-        # when
+        # when press Enter
         state = process_user_input(state, '')
 
         # then
@@ -196,6 +192,142 @@ text2
                 src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
                 dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
                 first_user_translation=card.text2,
+                user_translation=None,
+                correctness_indicator=None,
+                correct_translation_entered=True,
+                enter_mark=False,
+                err_msg=None,
+            ),
+            state
+        )
+
+    def test_second_input_is_correct(self) -> None:
+        # given
+        task_id = 223
+        self._init_mocks()
+        card = make_simple_card()
+        task = Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12])
+        state = make_initial_state(self.cache, card, task)
+
+        # when render the initial state
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+
+{prompt}Write translation to EN for:{end}
+
+text1
+
+""",
+            self.get_text_printed_to_console()
+        )
+
+        # when the first input is incorrect
+        state = process_user_input(state, 'text3')
+
+        # then
+        self.assertEqual(
+            TranslateTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=TaskHistRec(task_id=task_id, mark=0.0, note='text3'),
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                first_user_translation='text3',
+                user_translation='text3',
+                correctness_indicator=False,
+                correct_translation_entered=False,
+                enter_mark=False,
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when render the sate after the first input is incorrect
+        state.hist_rec = None
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+
+{prompt}Write translation to EN for:{end}
+
+text1
+
+text3
+
+{error}X{end}
+
+""",
+            self.get_text_printed_to_console()
+        )
+
+        # when the second input is correct
+        state = process_user_input(state, 'text2')
+
+        # then
+        self.assertEqual(
+            TranslateTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                first_user_translation='text3',
+                user_translation='text2',
+                correctness_indicator=True,
+                correct_translation_entered=True,
+                enter_mark=False,
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when render the state after the second input is correct
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}e - exit    u - update card    s - show statistics{end}
+
+{prompt}Write translation to EN for:{end}
+
+text1
+
+text2
+
+{success}V{end}
+
+{info}Transcription: {end}tran2
+
+{prompt}(press Enter to go to the next task){end}""",
+            self.get_text_printed_to_console()
+        )
+
+        # when press Enter
+        state = process_user_input(state, '')
+
+        # then
+        self.assertEqual(
+            TranslateTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.NEXT_TASK,
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                first_user_translation='text3',
                 user_translation=None,
                 correctness_indicator=None,
                 correct_translation_entered=True,
