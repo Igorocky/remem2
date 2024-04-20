@@ -56,7 +56,7 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
         cur_gap_idx = None
 
     # commands
-    show_answer_cmd_descr = 'a - show answer    ' if cur_gap_idx is not None else ''
+    show_answer_cmd_descr = 'a - show answer    ' if cur_gap_idx is not None and not state.show_answer else ''
     c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics')
     c.print()
 
@@ -134,9 +134,9 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
 
     # prompt
     if cur_gap_idx is None:
-        c.hint('(press Enter to go to the next task)')
+        c.print(c.mark_prompt('(press Enter to go to the next task)'), end='')
     elif state.show_answer:
-        c.hint('(press Enter to hide the answer)')
+        c.prompt('(press Enter to hide the answer)')
         c.print()
 
 
@@ -196,25 +196,29 @@ def process_user_input(
 
     if user_input.startswith('`'):
         return process_command(user_input[1:])
-    if user_input == '':
-        return update_state(state)
     if cur_gap_idx is None:
         if user_input == '':
             return update_state(state, task_continuation=TaskContinuation.NEXT_TASK)
         else:
             return update_state(state)
+    if user_input == '':
+        return update_state(state)
     if state.first_user_inputs[cur_gap_idx] is None:
         first_user_inputs = state.first_user_inputs.copy()
         first_user_inputs[cur_gap_idx] = user_input
         state = update_state(state, first_user_inputs=first_user_inputs)
     if user_input != state.answers[cur_gap_idx]:
-        return update_state(state, correctness_indicator=False)
+        return update_state(state, correctness_indicator=False, user_input=user_input)
     else:
         num_of_gaps = len(state.answers)
         if cur_gap_idx == num_of_gaps - 1:
             mark = (sum(1 if state.first_user_inputs[i] == state.answers[i] else 0 for i in range(num_of_gaps))
                     / num_of_gaps)
-            note = ' | '.join(f'exp: {state.answers[i]} & act: {state.first_user_inputs[i]}' for i in range(num_of_gaps))
+            note = ' | '.join(
+                f'{"V" if state.answers[i] == state.first_user_inputs[i] else "X"} '
+                + f'exp: {state.answers[i]} & act: {state.first_user_inputs[i]}'
+                for i in range(num_of_gaps)
+            )
             state = update_state(state, hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=note))
         correct_text_entered = state.correct_text_entered
         correct_text_entered[cur_gap_idx] = True
