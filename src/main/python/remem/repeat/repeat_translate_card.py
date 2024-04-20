@@ -83,7 +83,7 @@ def render_state(c: Console, state: TranslateTaskState) -> None:
     c.print(state.src.text)
     c.print()
 
-    # user_translation
+    # translation
     if state.user_translation is not None:
         c.print(state.user_translation)
         c.print()
@@ -104,14 +104,17 @@ def render_state(c: Console, state: TranslateTaskState) -> None:
             c.print()
 
     # answer
-    if state.show_answer:
-        c.info('The translation is:')
+    if state.show_answer or state.dst.read_only and state.first_user_translation is not None:
+        c.info('Translation:')
         c.print()
         c.print(state.dst.text)
         c.print()
 
     # transcription
-    if state.show_answer or state.correct_translation_entered and state.dst.tran != '':
+    if (state.dst.tran != ''
+            and (state.show_answer
+                 or state.correct_translation_entered
+                 or state.dst.read_only and state.first_user_translation is not None)):
         c.print(c.mark_info('Transcription: ') + state.dst.tran)
         c.print()
 
@@ -203,10 +206,7 @@ def process_user_input(
         else:
             return update_state(state)
     if state.dst.read_only:
-        if state.first_user_translation is None:
-            return update_state(state, first_user_translation='', enter_mark=True)
-        else:
-            return update_state(state)
+        return update_state(state, first_user_translation='', enter_mark=True)
     if user_input == '':
         return update_state(state)
     if state.first_user_translation is None:
