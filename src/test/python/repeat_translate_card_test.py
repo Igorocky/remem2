@@ -491,4 +491,111 @@ text1
         )
 
     def test_show_answer_before_first_input(self) -> None:
-        raise Exception('Not implemented')
+        # given
+        task_id = 75
+        self._init_mocks()
+        card = make_simple_card()
+        task = Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12])
+        state = make_initial_state(self.cache, card, task)
+
+        # when render the initial state
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+
+{prompt}Write translation to EN for:{end}
+
+text1
+
+""",
+            self.get_text_printed_to_console()
+        )
+
+        # when the "show answer" command is selected before the first input
+        state = process_user_input(state, '`a')
+
+        # then
+        self.assertEqual(
+            TranslateTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
+                show_answer=True,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=TaskHistRec(task_id=task_id, mark=0.0, note=''),
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                first_user_translation=None,
+                user_translation=None,
+                correctness_indicator=None,
+                correct_translation_entered=False,
+                enter_mark=False,
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when render the state showing the answer
+        state.hist_rec = None
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}e - exit    u - update card    s - show statistics{end}
+
+{prompt}Write translation to EN for:{end}
+
+text1
+
+{info}The translation is:{end}
+
+text2
+
+{info}Transcription: {end}tran2
+
+{prompt}(press Enter to hide the answer){end}
+
+""",
+            self.get_text_printed_to_console()
+        )
+
+        # when press Enter to hide the answer
+        state = process_user_input(state, '')
+
+        # then
+        self.assertEqual(
+            TranslateTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                first_user_translation=None,
+                user_translation=None,
+                correctness_indicator=None,
+                correct_translation_entered=False,
+                enter_mark=False,
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when render the state after the answer is hidden
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+
+{prompt}Write translation to EN for:{end}
+
+text1
+
+""",
+            self.get_text_printed_to_console()
+        )
