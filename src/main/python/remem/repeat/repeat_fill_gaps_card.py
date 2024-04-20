@@ -59,93 +59,75 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
     else:
         cur_gap_idx = None
 
-    def rnd_commands() -> None:
-        show_answer_cmd_descr = 'a - show answer    ' if cur_gap_idx is not None else ''
-        c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics')
-
-    def rnd_answers() -> None:
-        max_idx = cur_gap_idx - 1 if cur_gap_idx is not None else len(state.answers)
-        for i in range(max_idx + 1):
-            status = c.mark_success('V')
-            answer = state.answers[i]
-            note = state.notes[i]
-            c.print(f'{status} #{i + 1} {answer}')
-            if note != '':
-                c.print(f'    {note}')
-        if cur_gap_idx is None and state.card.notes != '':
-            c.print()
-            c.print('Notes:')
-            c.print(state.card.notes)
-
-    def rnd_question() -> None:
-        if cur_gap_idx is not None:
-            c.prompt(f'Fill the gap #{cur_gap_idx + 1}:')
-        else:
-            c.info('All gaps are filled')
-        text_arr = []
-        for i, ans in enumerate(state.answers):
-            text_arr.append(state.text_parts[i])
-            if state.correct_text_entered[i]:
-                text_arr.append(ans)
-            else:
-                text_arr.append(add_color(orange, f'# {i + 1}'))
-        text_arr.append(state.text_parts[-1])
-        c.print()
-        c.print(' '.join(text_arr).strip())
-        if cur_gap_idx is not None:
-            hint = state.hints[cur_gap_idx]
-            if hint != '':
-                c.print()
-                c.print(c.mark_info('Hint: ') + hint)
-
-    def rnd_answer_for_curr_gap() -> None:
-        if state.show_answer and cur_gap_idx is not None:
-            c.info(f'The answer for the gap #{cur_gap_idx + 1} is:\n')
-            c.print(state.answers[cur_gap_idx])
-            note = state.notes[cur_gap_idx]
-            if note != '':
-                c.print()
-                c.print(c.mark_info('Note: ') + note)
-
-    def rnd_user_input() -> None:
-        if state.user_input is not None:
-            c.print(state.user_input)
-
-    def rnd_indicator() -> None:
-        match state.correctness_indicator:
-            case True:
-                c.success('V')
-            case False:
-                c.error('X')
-
-    def rnd_err_msg() -> None:
-        if not state.card_is_valid:
-            c.error('The card is not correctly formatted.')
-        if state.err_msg is not None:
-            c.error(state.err_msg)
-
-    def rnd_prompt() -> None:
-        if cur_gap_idx is None:
-            c.hint('(Press Enter to go to the next task)')
-        elif state.show_answer:
-            c.hint('(press Enter to hide the answer)')
-
-    rnd_commands()
-    if state.card_is_valid:
-        c.print()
-        rnd_answers()
-        c.print()
-        rnd_question()
-        c.print()
-        rnd_answer_for_curr_gap()
-        c.print()
-        rnd_user_input()
-        c.print()
-        rnd_indicator()
-        c.print()
-        rnd_err_msg()
+    # commands
+    show_answer_cmd_descr = 'a - show answer    ' if cur_gap_idx is not None else ''
+    c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics')
     c.print()
-    rnd_prompt()
+
+    if not state.card_is_valid:
+        c.error('The card is not correctly formatted.')
+        c.print()
+        return
+
+    # answers
+    for i in range(cur_gap_idx if cur_gap_idx is not None else len(state.answers)):
+        status = c.mark_success('V')
+        answer = state.answers[i]
+        note = state.notes[i]
+        c.print(f'{status} #{i + 1} {answer}')
+        if note != '':
+            c.print(f'    {note}')
+    if cur_gap_idx is None or cur_gap_idx > 0:
+        c.print()
+    if cur_gap_idx is None and state.card.notes != '':
+        c.info('Notes:')
+        c.print()
+        c.print(state.card.notes)
+        c.print()
+
+    # question
+    if cur_gap_idx is not None:
+        c.prompt(f'Fill the gap #{cur_gap_idx + 1}:')
+    else:
+        c.info('All gaps are filled.')
+    c.print()
+    text_arr = []
+    for i, ans in enumerate(state.answers):
+        text_arr.append(state.text_parts[i])
+        if state.correct_text_entered[i]:
+            text_arr.append(ans)
+        else:
+            text_arr.append(add_color(orange, f'#{i + 1}'))
+    text_arr.append(state.text_parts[-1])
+    c.print(' '.join(text_arr).strip())
+    c.print()
+    if cur_gap_idx is not None:
+        hint = state.hints[cur_gap_idx]
+        if hint != '':
+            c.print(c.mark_info('Hint: ') + hint)
+            c.print()
+
+    # answer for curr gap
+    if state.show_answer and cur_gap_idx is not None:
+        c.info(f'The answer for the gap #{cur_gap_idx + 1} is:')
+        c.print()
+        c.print(state.answers[cur_gap_idx])
+        c.print()
+        note = state.notes[cur_gap_idx]
+        if note != '':
+            c.print(c.mark_info('Note: ') + note)
+            c.print()
+
+    # error msg
+    if state.err_msg is not None:
+        c.error(state.err_msg)
+
+    # prompt
+    if cur_gap_idx is None:
+        c.hint('(press Enter to go to the next task)')
+    elif state.show_answer:
+        c.hint('(press Enter to hide the answer)')
+        c.print()
 
 
 def process_user_input(
