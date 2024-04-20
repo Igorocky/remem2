@@ -100,24 +100,24 @@ class Console:
         print(text, end=end)
 
     def error(self, text: str) -> None:
-        print(self.mark_error(text))
+        self.print(self.mark_error(text))
 
     def success(self, text: str) -> None:
-        print(self.mark_success(text))
+        self.print(self.mark_success(text))
 
     def prompt(self, text: str) -> None:
-        print(self.mark_prompt(text))
+        self.print(self.mark_prompt(text))
 
     def info(self, text: str) -> None:
-        print(self.mark_info(text))
+        self.print(self.mark_info(text))
 
     def hint(self, text: str) -> None:
-        print(self.mark_hint(text))
+        self.print(self.mark_hint(text))
 
     def print_last_exception_info(self, ex: Exception) -> None:
         self.error(str(ex))
         if self._app_settings.print_stack_traces_for_exceptions:
-            print(traceback.format_exc())
+            self.print(traceback.format_exc())
 
     def ask_to_press_enter(self) -> None:
         self.input('Press Enter')

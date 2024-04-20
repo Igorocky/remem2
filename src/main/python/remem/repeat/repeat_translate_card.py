@@ -67,68 +67,66 @@ def read_mark(c: Console) -> float:
 
 
 def render_state(c: Console, state: TranslateTaskState) -> None:
-    def rnd_commands() -> None:
-        show_answer_cmd_descr = '' if state.dst.read_only or state.correct_translation_entered \
-            else 'a - show answer    '
-        c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics\n')
+    # def rnd_commands() -> None:
+    show_answer_cmd_descr = '' if state.dst.read_only or state.correct_translation_entered \
+        else 'a - show answer    '
+    c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics')
+    c.print()
+
+    # def rnd_question() -> None:
+    if state.dst.read_only:
+        c.prompt(f'Recall translation to {state.dst.lang_str} for:')
+    else:
+        c.prompt(f'Write translation to {state.dst.lang_str} for:')
+    c.print()
+    c.print(state.src.text)
+    c.print()
+
+    # def rnd_user_translation() -> None:
+    if state.user_translation is not None:
+        c.print(state.user_translation)
+        c.print()
+    elif state.correct_translation_entered:
+        c.print(state.dst.text)
         c.print()
 
-    def rnd_question() -> None:
-        if state.dst.read_only:
-            c.prompt(f'Recall translation to {state.dst.lang_str} for:')
-        else:
-            c.prompt(f'Write translation to {state.dst.lang_str} for:')
+    # def rnd_indicator() -> None:
+    match state.correctness_indicator:
+        case True:
+            c.success('V')
+            c.print()
+        case False:
+            c.error('X')
+            c.print()
+        case _ if state.correct_translation_entered:
+            c.success('V')
+            c.print()
+
+    # def rnd_answer() -> None:
+    if state.show_answer:
+        c.info('The translation is:')
         c.print()
-        c.print(state.src.text)
+        c.print(state.dst.text)
         c.print()
 
-    def rnd_answer() -> None:
-        if (state.show_answer
-                or state.dst.read_only and state.first_user_translation is not None
-                or state.correct_translation_entered):
-            # if not state.dst.read_only and state.first_user_translation != state.dst.text:
-            c.info('The translation is:')
-            c.print()
-            c.print(state.dst.text)
-            if state.dst.tran != '':
-                c.print()
-                c.print(c.mark_info('Transcription: ') + state.dst.tran)
-            c.print()
+    # transcription
+    if state.show_answer or state.correct_translation_entered and state.dst.tran != '':
+        c.print(c.mark_info('Transcription: ') + state.dst.tran)
+        c.print()
 
-    def rnd_user_translation() -> None:
-        if state.user_translation is not None:
-            c.print(state.user_translation)
-            c.print()
+    # def rnd_err_msg() -> None:
+    if state.err_msg is not None:
+        c.error(state.err_msg)
+        c.print()
 
-    def rnd_indicator() -> None:
-        match state.correctness_indicator:
-            case True:
-                c.success('V')
-                c.print()
-            case False:
-                c.error('X')
-                c.print()
-
-    def rnd_err_msg() -> None:
-        if state.err_msg is not None:
-            c.error(state.err_msg)
-            c.print()
-
-    def rnd_prompt() -> None:
-        if state.enter_mark:
-            c.print(c.mark_prompt('Enter mark [1]: '), end='')
-        elif state.correct_translation_entered:
-            c.print(c.mark_hint('(Press Enter to go to the next task)'))
-        elif state.show_answer:
-            c.print(c.mark_hint('(press Enter to hide the answer)'))
-
-    rnd_commands()
-    rnd_question()
-    rnd_answer()
-    rnd_user_translation()
-    rnd_indicator()
-    rnd_err_msg()
-    rnd_prompt()
+    # def rnd_prompt() -> None:
+    if state.enter_mark:
+        c.print(c.mark_prompt('Enter mark [1]: '), end='')
+    elif state.correct_translation_entered:
+        c.print(c.mark_prompt('(press Enter to go to the next task)'), end='')
+    elif state.show_answer:
+        c.print(c.mark_prompt('(press Enter to hide the answer)'))
+        c.print()
 
 
 def process_user_input(
@@ -159,7 +157,7 @@ def process_user_input(
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
-            hist_rec=hist_rec,
+            hist_rec=hist_rec or st.hist_rec,
             err_msg=err_msg,
             task_continuation=task_continuation
         )
@@ -208,14 +206,14 @@ def process_user_input(
             return update_state(state, first_user_translation='', enter_mark=True)
         else:
             return update_state(state)
-    elif user_input != state.dst.text:
-        if state.first_user_translation is None:
-            return update_state(state, first_user_translation=user_input, correctness_indicator=False,
-                                hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=0.0, note=user_input))
-        return update_state(state, correctness_indicator=False if user_input != '' else None)
+    if user_input == '':
+        return update_state(state)
+    if state.first_user_translation is None:
+        mark = 1.0 if user_input == state.dst.text else 0.0
+        state = update_state(state, first_user_translation=user_input,
+                             hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=user_input))
+    if user_input != state.dst.text:
+        return update_state(state, user_translation=user_input, correctness_indicator=False)
     else:
-        if state.first_user_translation is None:
-            return update_state(state, first_user_translation=user_input, correctness_indicator=True,
-                                correct_translation_entered=True,
-                                hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=1.0, note=user_input))
-        return update_state(state, correctness_indicator=True, correct_translation_entered=True)
+        return update_state(state, user_translation=user_input, correctness_indicator=True,
+                            correct_translation_entered=True)
