@@ -67,13 +67,13 @@ def read_mark(c: Console) -> float:
 
 
 def render_state(c: Console, state: TranslateTaskState) -> None:
-    # def rnd_commands() -> None:
-    show_answer_cmd_descr = '' if state.dst.read_only or state.correct_translation_entered \
+    # commands
+    show_answer_cmd_descr = '' if state.dst.read_only or state.correct_translation_entered or state.show_answer \
         else 'a - show answer    '
     c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics')
     c.print()
 
-    # def rnd_question() -> None:
+    # question
     if state.dst.read_only:
         c.prompt(f'Recall translation to {state.dst.lang_str} for:')
     else:
@@ -82,7 +82,7 @@ def render_state(c: Console, state: TranslateTaskState) -> None:
     c.print(state.src.text)
     c.print()
 
-    # def rnd_user_translation() -> None:
+    # user_translation
     if state.user_translation is not None:
         c.print(state.user_translation)
         c.print()
@@ -90,7 +90,7 @@ def render_state(c: Console, state: TranslateTaskState) -> None:
         c.print(state.dst.text)
         c.print()
 
-    # def rnd_indicator() -> None:
+    # correctness_indicator
     match state.correctness_indicator:
         case True:
             c.success('V')
@@ -102,7 +102,7 @@ def render_state(c: Console, state: TranslateTaskState) -> None:
             c.success('V')
             c.print()
 
-    # def rnd_answer() -> None:
+    # answer
     if state.show_answer:
         c.info('The translation is:')
         c.print()
@@ -114,12 +114,12 @@ def render_state(c: Console, state: TranslateTaskState) -> None:
         c.print(c.mark_info('Transcription: ') + state.dst.tran)
         c.print()
 
-    # def rnd_err_msg() -> None:
+    # error message
     if state.err_msg is not None:
         c.error(state.err_msg)
         c.print()
 
-    # def rnd_prompt() -> None:
+    # prompt
     if state.enter_mark:
         c.print(c.mark_prompt('Enter mark [1]: '), end='')
     elif state.correct_translation_entered:
