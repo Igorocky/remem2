@@ -55,18 +55,6 @@ def make_initial_state(cache: Cache, card: AnyCard, task: Task) -> TranslateTask
     return TranslateTaskState(task=task, src=src, dst=dst)
 
 
-def read_mark(c: Console) -> float:
-    while True:
-        try:
-            inp = c.input('Your mark [1.0]: ')
-            if inp.strip() == '':
-                return 1.0
-            mark = float(inp)
-            return min(max(0.0, mark), 1.0)
-        except ValueError:
-            pass
-
-
 def render_state(c: Console, state: TranslateTaskState) -> None:
     # commands
     show_answer_cmd_descr = '' if state.dst.read_only or state.correct_translation_entered or state.show_answer \
