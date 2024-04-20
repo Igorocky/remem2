@@ -2,7 +2,7 @@ import datetime
 import math
 import re
 import time
-from typing import TypeVar, Callable, Generic, Tuple
+from typing import TypeVar, Callable, Generic, Tuple, Any
 
 T = TypeVar('T')
 K = TypeVar('K')
@@ -128,3 +128,10 @@ def extract_gaps_from_text(text: str) -> Tuple[list[str], list[str], list[str], 
             hints.append(gap[1].strip() if len(gap) > 1 else '')
             notes.append(gap[2].strip() if len(gap) > 2 else '')
     return text_parts, answers, hints, notes
+
+
+def first_defined(*args: Any) -> Any:
+    for arg in args:
+        if arg is not None:
+            return arg
+    return None

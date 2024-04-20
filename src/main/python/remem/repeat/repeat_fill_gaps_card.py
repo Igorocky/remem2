@@ -2,7 +2,7 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from remem.cache import Cache
-from remem.common import extract_gaps_from_text
+from remem.common import extract_gaps_from_text, first_defined
 from remem.console import add_color, Console
 from remem.dtos import Task, TaskHistRec, CardFillGaps, AnyCard
 from remem.repeat import TaskContinuation, RepeatTaskState
@@ -167,14 +167,14 @@ def process_user_input(
     ) -> FillGapsTaskState:
         return dataclasses.replace(
             st,
-            first_user_inputs=first_user_inputs or st.first_user_inputs,
+            first_user_inputs=first_defined(first_user_inputs, st.first_user_inputs),
             user_input=user_input,
             correctness_indicator=correctness_indicator,
-            correct_text_entered=correct_text_entered or st.correct_text_entered,
+            correct_text_entered=first_defined(correct_text_entered, st.correct_text_entered),
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
-            hist_rec=hist_rec or st.hist_rec,
+            hist_rec=first_defined(hist_rec, st.hist_rec),
             err_msg=err_msg,
             task_continuation=task_continuation,
         )

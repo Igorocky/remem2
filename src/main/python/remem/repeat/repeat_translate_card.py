@@ -2,6 +2,7 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from remem.cache import Cache
+from remem.common import first_defined
 from remem.console import Console
 from remem.constants import TaskTypes
 from remem.dtos import Task, CardTranslate, TaskHistRec, AnyCard
@@ -149,15 +150,15 @@ def process_user_input(
     ) -> TranslateTaskState:
         return dataclasses.replace(
             st,
-            first_user_translation=first_user_translation or st.first_user_translation,
+            first_user_translation=first_defined(first_user_translation, st.first_user_translation),
             user_translation=user_translation,
             correctness_indicator=correctness_indicator,
-            correct_translation_entered=correct_translation_entered or st.correct_translation_entered,
-            enter_mark=enter_mark or st.enter_mark,
+            correct_translation_entered=first_defined(correct_translation_entered, st.correct_translation_entered),
+            enter_mark=first_defined(enter_mark, st.enter_mark),
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
-            hist_rec=hist_rec or st.hist_rec,
+            hist_rec=first_defined(hist_rec, st.hist_rec),
             err_msg=err_msg,
             task_continuation=task_continuation
         )

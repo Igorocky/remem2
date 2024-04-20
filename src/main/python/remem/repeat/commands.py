@@ -6,6 +6,7 @@ import remem.repeat.repeat_fill_gaps_card as repeat_fill_gaps_card
 import remem.repeat.repeat_translate_card as repeat_translate_card
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
+from remem.common import first_defined
 from remem.console import select_multiple_options, select_single_option, clear_screen
 from remem.constants import TaskTypes
 from remem.dao import insert_task_hist, select_card
@@ -55,11 +56,11 @@ def create_task_type_description(ctx: AppCtx, task_type: TaskTypeForSelectDto) -
     ca = ctx.cache
     if task_type.task_type_id == ca.task_types_si[TaskTypes.translate_12]:
         lang1_id = task_type.lang1_id
-        lang2_id = task_type.lang2_id or list(ca.lang_is)[0]
+        lang2_id = first_defined(task_type.lang2_id, list(ca.lang_is)[0])
         return f'{ca.lang_is[lang1_id]} -> {ca.lang_is[lang2_id]}'
     if task_type.task_type_id == ca.task_types_si[TaskTypes.translate_21]:
         lang1_id = task_type.lang1_id
-        lang2_id = task_type.lang2_id or list(ca.lang_is)[0]
+        lang2_id = first_defined(task_type.lang2_id, list(ca.lang_is)[0])
         return f'{ca.lang_is[lang2_id]} -> {ca.lang_is[lang1_id]}'
     if task_type.task_type_id == ca.task_types_si[TaskTypes.fill_gaps]:
         lang1_id = task_type.lang1_id
@@ -116,7 +117,7 @@ def select_task_ids(ctx: AppCtx, folder_ids: list[int], task_types: list[TaskTyp
                 """)
                 params[f'task_type_id{i}'] = t.task_type_id
                 params[f'lang1_id{i}'] = t.lang1_id
-                params[f'lang2_id{i}'] = t.lang2_id or list(ctx.cache.lang_is)[0]
+                params[f'lang2_id{i}'] = first_defined(t.lang2_id, list(ctx.cache.lang_is)[0])
             elif t.task_type_id == ca.task_types_si[TaskTypes.fill_gaps]:
                 conditions.append(f"""
                     t.task_type_id = :task_type_id{i} and cf.lang_id = :lang_id{i}
