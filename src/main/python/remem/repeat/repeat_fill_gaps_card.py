@@ -34,10 +34,6 @@ def make_initial_state(cache: Cache, card: AnyCard, task: Task) -> FillGapsTaskS
             task=task,
             card=card,
             card_is_valid=False,
-            text_parts=[],
-            answers=[],
-            hints=[],
-            notes=[],
         )
     text_parts, answers, hints, notes = gaps
     return FillGapsTaskState(
@@ -48,8 +44,8 @@ def make_initial_state(cache: Cache, card: AnyCard, task: Task) -> FillGapsTaskS
         answers=answers,
         hints=hints,
         notes=notes,
-        first_user_inputs=[None for _ in range(len(gaps))],
-        correct_text_entered=[False for _ in range(len(gaps))],
+        first_user_inputs=[None for _ in range(len(answers))],
+        correct_text_entered=[False for _ in range(len(answers))],
     )
 
 
@@ -105,6 +101,20 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
         hint = state.hints[cur_gap_idx]
         if hint != '':
             c.print(c.mark_info('Hint: ') + hint)
+            c.print()
+
+    # user_input
+    if state.user_input is not None:
+        c.print(state.user_input)
+        c.print()
+
+    # correctness_indicator
+    match state.correctness_indicator:
+        case True:
+            c.success('V')
+            c.print()
+        case False:
+            c.error('X')
             c.print()
 
     # answer for curr gap
@@ -167,6 +177,7 @@ def process_user_input(
         cur_gap_idx = None
 
     def process_command(cmd: str) -> FillGapsTaskState:
+        nonlocal state
         match cmd:
             case 'e':
                 return update_state(state, task_continuation=TaskContinuation.EXIT)
@@ -174,7 +185,7 @@ def process_user_input(
                 if state.first_user_inputs[cur_gap_idx] is None:
                     first_user_inputs = state.first_user_inputs.copy()
                     first_user_inputs[cur_gap_idx] = ''
-                    return update_state(state, first_user_inputs=first_user_inputs, show_answer=True)
+                    state = update_state(state, first_user_inputs=first_user_inputs)
                 return update_state(state, show_answer=True)
             case 'u':
                 return update_state(state, edit_card=True)
@@ -185,6 +196,8 @@ def process_user_input(
 
     if user_input.startswith('`'):
         return process_command(user_input[1:])
+    if user_input == '':
+        return update_state(state)
     if cur_gap_idx is None:
         if user_input == '':
             return update_state(state, task_continuation=TaskContinuation.NEXT_TASK)
@@ -195,14 +208,14 @@ def process_user_input(
         first_user_inputs[cur_gap_idx] = user_input
         state = update_state(state, first_user_inputs=first_user_inputs)
     if user_input != state.answers[cur_gap_idx]:
-        return update_state(state, correctness_indicator=False if user_input != '' else None)
+        return update_state(state, correctness_indicator=False)
     else:
         num_of_gaps = len(state.answers)
         if cur_gap_idx == num_of_gaps - 1:
             mark = (sum(1 if state.first_user_inputs[i] == state.answers[i] else 0 for i in range(num_of_gaps))
                     / num_of_gaps)
-            note = ' '.join(f'exp: {state.answers[i]} & act: {state.first_user_inputs[i]}' for i in range(num_of_gaps))
+            note = ' | '.join(f'exp: {state.answers[i]} & act: {state.first_user_inputs[i]}' for i in range(num_of_gaps))
             state = update_state(state, hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=note))
         correct_text_entered = state.correct_text_entered
         correct_text_entered[cur_gap_idx] = True
-        return update_state(state, correctness_indicator=True, correct_text_entered=correct_text_entered)
+        return update_state(state, correct_text_entered=correct_text_entered)
