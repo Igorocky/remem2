@@ -176,7 +176,7 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> Tas
     while True:
         clear_screen()
         render_state(ctx.console, state)
-        state = process_user_input(state, input())
+        state = process_user_input(state, input().strip())
         match state.task_continuation:
             case TaskContinuation.CONTINUE_TASK:
                 if state.edit_card:

@@ -1,9 +1,9 @@
 import re
 import time
-from typing import Callable
+from typing import Callable, Any
 
 from remem.app_context import AppCtx
-from remem.common import duration_str_to_seconds, seconds_to_duration_str
+from remem.common import duration_str_to_seconds, seconds_to_duration_str, print_table_from_dicts
 from remem.console import clear_screen
 from remem.dao import select_task_hist, select_tasks_with_base_cards_by_ids
 from remem.dtos import Task, TaskHistRec
@@ -33,13 +33,15 @@ def load_buckets(ctx: AppCtx, task_ids: list[int], num_of_buckets: int) -> list[
         hist=hist[t.id] if t.id in hist else [],
         last_repeated=none_to_zero(hist[t.id][0].time) if t.id in hist else 0
     ) for t in select_tasks_with_base_cards_by_ids(db.con, task_ids)]
-    buckets: list[list[TaskWithHist]] = [[] for _ in range(0, num_of_buckets)]
+    buckets: list[list[TaskWithHist]] = [[] for _ in range(num_of_buckets)]
+    max_bucket_num = num_of_buckets - 1
     for t in tasks:
-        buckets[get_bucket_number(t.hist, max_num=num_of_buckets - 1)].append(t)
+        buckets[get_bucket_number(t.hist, max_num=max_bucket_num)].append(t)
     return buckets
 
 
-def select_tasks_to_repeat(buckets: list[list[TaskWithHist]], bucket_delays: list[int]) -> list[TaskWithHist]:
+def select_tasks_to_repeat_from_buckets(buckets: list[list[TaskWithHist]], bucket_delays: list[int]) -> (
+        list)[TaskWithHist]:
     all_tasks = [t for b in buckets for t in b]
     folder_last_access = [(t.task.card.folder_id, t.last_repeated) for t in all_tasks]
     folder_last_access.sort(key=lambda f: f[1])
@@ -69,7 +71,7 @@ def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> N
     curr_time_sec = int(time.time())
     print(f"\n{c.mark_info('Bucket delays:')} {' '.join([seconds_to_duration_str(d) for d in bucket_delays])}")
     print(f"\n{c.mark_info('Total number of tasks:')} {len(task_ids)}")
-    ctx.console.info('\nBucket counts (total, active, waiting, time_to_wait):\n')
+    bucket_counts: list[dict[str, Any]] = []
     for bucket_idx, bucket in enumerate(buckets):
         min_delay_sec = bucket_delays[bucket_idx]
         active = []
@@ -79,15 +81,19 @@ def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> N
                 active.append(t)
             else:
                 waiting.append(t)
-        if len(active) == 0:
-            time_to_wait = min([min_delay_sec - (curr_time_sec - t.last_repeated) for t in waiting])
+        if len(active) == 0 and len(waiting) > 0:
+            time_to_wait = min(min_delay_sec - (curr_time_sec - t.last_repeated) for t in waiting)
             time_to_wait_str = seconds_to_duration_str(time_to_wait)
         else:
             time_to_wait_str = ''
-        print(
-            f'{str(bucket_idx).rjust(2)}: {str(len(bucket)).rjust(4)} '
-            f'{str(len(active)).rjust(4)} {str(len(waiting)).rjust(4)} {time_to_wait_str}'
-        )
+        bucket_counts.append({
+            'bucket': bucket_idx,
+            'total': len(bucket),
+            'active': len(active),
+            'waiting': len(waiting),
+            'time_to_wait': time_to_wait_str,
+        })
+    print(print_table_from_dicts(bucket_counts))
     ctx.console.ask_to_press_enter()
 
 
@@ -104,7 +110,10 @@ def repeat_tasks_with_buckets(
     print_stats(ctx, task_ids, bucket_delays)
 
     def get_next_tasks_to_repeat() -> list[TaskWithHist]:
-        return select_tasks_to_repeat(load_buckets(ctx, task_ids, num_of_buckets), bucket_delays)
+        return select_tasks_to_repeat_from_buckets(
+            load_buckets(ctx, task_ids, num_of_buckets),
+            bucket_delays
+        )
 
     tasks = get_next_tasks_to_repeat()
     act = TaskContinuation.NEXT_TASK
