@@ -21,8 +21,9 @@ from unittest import TestCase
 
 def make_simple_card() -> CardTranslate:
     return CardTranslate(
-        lang1_id=0, read_only1=1, text1='text1', tran1='tran1',
-        lang2_id=1, read_only2=0, text2='text2', tran2='tran2')
+        lang1_id=0, read_only1=1, text1='text1',
+        lang2_id=1, read_only2=0, text2='text2',
+        notes='notes')
 
 
 _console = Console(AppSettings())
@@ -50,14 +51,15 @@ class MakeInitialStateTest(TestCase):
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=self.card,
                 task=Task(task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation=None,
                 user_translation=None,
                 correctness_indicator=None,
@@ -79,14 +81,15 @@ class MakeInitialStateTest(TestCase):
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=self.card,
                 task=Task(task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation=None,
                 user_translation=None,
                 correctness_indicator=None,
@@ -137,14 +140,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=1.0, note=card.text2),
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation=card.text2,
                 user_translation=card.text2,
                 correctness_indicator=True,
@@ -171,7 +175,9 @@ text2
 
 {success}V{end}
 
-{info}Transcription: {end}tran2
+{info}Notes:{end}
+
+notes
 
 {prompt}(press Enter to go to the next task){end}""",
             self._get_text_printed_to_console()
@@ -183,14 +189,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.NEXT_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation=card.text2,
                 user_translation=None,
                 correctness_indicator=None,
@@ -230,14 +237,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=0.0, note='text3'),
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='text3',
                 user_translation='text3',
                 correctness_indicator=False,
@@ -274,14 +282,15 @@ text3
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='text3',
                 user_translation='text2',
                 correctness_indicator=True,
@@ -307,7 +316,9 @@ text2
 
 {success}V{end}
 
-{info}Transcription: {end}tran2
+{info}Notes:{end}
+
+notes
 
 {prompt}(press Enter to go to the next task){end}""",
             self._get_text_printed_to_console()
@@ -319,14 +330,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.NEXT_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='text3',
                 user_translation=None,
                 correctness_indicator=None,
@@ -366,14 +378,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation=None,
                 user_translation=None,
                 correctness_indicator=None,
@@ -405,14 +418,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=1.0, note='text2'),
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='text2',
                 user_translation='text2',
                 correctness_indicator=True,
@@ -439,7 +453,9 @@ text2
 
 {success}V{end}
 
-{info}Transcription: {end}tran2
+{info}Notes:{end}
+
+notes
 
 {prompt}(press Enter to go to the next task){end}""",
             self._get_text_printed_to_console()
@@ -451,14 +467,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.NEXT_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='text2',
                 user_translation=None,
                 correctness_indicator=None,
@@ -498,14 +515,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=0.0, note='text3'),
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='text3',
                 user_translation='text3',
                 correctness_indicator=False,
@@ -542,14 +560,15 @@ text3
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=True,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='text3',
                 user_translation=None,
                 correctness_indicator=None,
@@ -575,7 +594,9 @@ text1
 
 text2
 
-{info}Transcription: {end}tran2
+{info}Notes:{end}
+
+notes
 
 {prompt}(press Enter to hide the answer){end}
 
@@ -589,14 +610,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='text3',
                 user_translation=None,
                 correctness_indicator=None,
@@ -651,14 +673,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=True,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=0.0, note=''),
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -685,7 +708,9 @@ text1
 
 text2
 
-{info}Transcription: {end}tran2
+{info}Notes:{end}
+
+notes
 
 {prompt}(press Enter to hide the answer){end}
 
@@ -699,14 +724,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -761,14 +787,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=True,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=0.0, note=''),
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -795,7 +822,9 @@ text1
 
 text2
 
-{info}Transcription: {end}tran2
+{info}Notes:{end}
+
+notes
 
 {prompt}(press Enter to hide the answer){end}
 
@@ -809,14 +838,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
-                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
                 first_user_translation='',
                 user_translation='text2',
                 correctness_indicator=True,
@@ -842,7 +872,9 @@ text2
 
 {success}V{end}
 
-{info}Transcription: {end}tran2
+{info}Notes:{end}
+
+notes
 
 {prompt}(press Enter to go to the next task){end}""",
             self._get_text_printed_to_console()
@@ -877,14 +909,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -910,7 +943,9 @@ text2
 
 text1
 
-{info}Transcription: {end}tran1
+{info}Notes:{end}
+
+notes
 
 {prompt}Enter mark [1]: {end}""",
             self._get_text_printed_to_console()
@@ -922,14 +957,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=0.0, note=''),
                 task_continuation=TaskContinuation.NEXT_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -969,14 +1005,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -1002,7 +1039,9 @@ text2
 
 text1
 
-{info}Transcription: {end}tran1
+{info}Notes:{end}
+
+notes
 
 {prompt}Enter mark [1]: {end}""",
             self._get_text_printed_to_console()
@@ -1014,14 +1053,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=1.0, note=''),
                 task_continuation=TaskContinuation.NEXT_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -1061,14 +1101,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=True,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation=None,
                 user_translation=None,
                 correctness_indicator=None,
@@ -1108,14 +1149,15 @@ text2
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -1141,7 +1183,9 @@ text2
 
 text1
 
-{info}Transcription: {end}tran1
+{info}Notes:{end}
+
+notes
 
 {prompt}Enter mark [1]: {end}""",
             self._get_text_printed_to_console()
@@ -1153,14 +1197,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=True,
                 print_stats=False,
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,
@@ -1187,7 +1232,9 @@ text2
 
 text1
 
-{info}Transcription: {end}tran1
+{info}Notes:{end}
+
+notes
 
 {prompt}Enter mark [1]: {end}""",
             self._get_text_printed_to_console()
@@ -1199,14 +1246,15 @@ text1
         # then
         self.assertEqual(
             TranslateTaskState(
+                card=card,
                 task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_21]),
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
                 hist_rec=TaskHistRec(task_id=task_id, mark=1.0, note=''),
                 task_continuation=TaskContinuation.NEXT_TASK,
-                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2', tran='tran2'),
-                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1', tran='tran1'),
+                src=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                dst=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
                 first_user_translation='',
                 user_translation=None,
                 correctness_indicator=None,

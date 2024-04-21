@@ -126,11 +126,10 @@ create table CARD_TRAN
     lang1_id integer not null references LANGUAGE on delete restrict on update restrict ,
     read_only1 integer not null check ( read_only1 in (0,1) ),
     text1 text not null ,
-    tran1 text not null ,
     lang2_id integer not null references LANGUAGE on delete restrict on update restrict ,
     read_only2 integer not null check ( read_only2 in (0,1) ),
     text2 text not null ,
-    tran2 text not null
+    notes text not null
 ) strict ;
 
 create table CARD_TRAN_CHG
@@ -138,29 +137,31 @@ create table CARD_TRAN_CHG
     time integer not null default (unixepoch()),
     id integer not null,
     lang1_id integer not null ,
-    text1 text not null ,
-    tran1 text not null ,
     read_only1 integer not null check ( read_only1 in (0,1) ),
+    text1 text not null ,
     lang2_id integer not null ,
+    read_only2 integer not null check ( read_only2 in (0,1) ),
     text2 text not null,
-    tran2 text not null,
-    read_only2 integer not null check ( read_only2 in (0,1) )
+    notes text not null
 ) strict ;
 
 create trigger insert_CARD_TRAN AFTER INSERT ON CARD_TRAN FOR EACH ROW BEGIN
-    insert into CARD_TRAN_CHG(id, lang1_id, text1, tran1, read_only1, lang2_id, text2, tran2, read_only2)
-    VALUES (new.id, new.lang1_id, new.text1, new.tran1, new.read_only1, new.lang2_id, new.text2, new.tran2, new.read_only2);
+    insert into CARD_TRAN_CHG(id, lang1_id, read_only1, text1, lang2_id, read_only2, text2, notes)
+    VALUES (new.id, new.lang1_id, new.read_only1, new.text1,
+            new.lang2_id, new.read_only2, new.text2, new.notes);
 end;
 
 create trigger update_CARD_TRAN AFTER UPDATE ON CARD_TRAN FOR EACH ROW BEGIN
-    insert into CARD_TRAN_CHG(id, lang1_id, text1, tran1, read_only1, lang2_id, text2, tran2, read_only2)
-    VALUES (new.id, new.lang1_id, new.text1, new.tran1, new.read_only1, new.lang2_id, new.text2, new.tran2, new.read_only2);
+    insert into CARD_TRAN_CHG(id, lang1_id, read_only1, text1, lang2_id, read_only2, text2, notes)
+    VALUES (new.id, new.lang1_id, new.read_only1, new.text1,
+            new.lang2_id, new.read_only2, new.text2, new.notes);
 end;
 
 create table CARD_FILL
 (
     id integer not null references CARD on delete cascade on update restrict ,
     lang_id integer not null references LANGUAGE on delete restrict on update restrict ,
+    descr text not null,
     text text not null,
     notes text not null
 ) strict ;
@@ -170,18 +171,19 @@ create table CARD_FILL_CHG
     time integer not null default (unixepoch()),
     id integer not null,
     lang_id integer not null ,
+    descr text not null,
     text text not null,
     notes text not null
 ) strict ;
 
 create trigger insert_CARD_FILL AFTER INSERT ON CARD_FILL FOR EACH ROW BEGIN
-    insert into CARD_FILL_CHG(id, lang_id, text, notes)
-    VALUES (new.id, new.lang_id, new.text, new.notes);
+    insert into CARD_FILL_CHG(id, lang_id, descr, text, notes)
+    VALUES (new.id, new.lang_id, new.descr, new.text, new.notes);
 end;
 
 create trigger update_CARD_FILL AFTER UPDATE ON CARD_FILL FOR EACH ROW BEGIN
-    insert into CARD_FILL_CHG(id, lang_id, text, notes)
-    VALUES (new.id, new.lang_id, new.text, new.notes);
+    insert into CARD_FILL_CHG(id, lang_id, descr, text, notes)
+    VALUES (new.id, new.lang_id, new.descr, new.text, new.notes);
 end;
 
 create table CARD_SYN

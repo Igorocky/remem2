@@ -91,8 +91,14 @@ def insert_card(con: Connection, cache: Cache, card: AnyCard) -> int:
     card.id = card_id
     if isinstance(card, CardTranslate):
         con.execute(
-            """ insert into CARD_TRAN(id, lang1_id, read_only1, text1, tran1, lang2_id, read_only2, text2, tran2)
-            values (:id, :lang1_id, :read_only1, :text1, :tran1, :lang2_id, :read_only2, :text2, :tran2) """,
+            """ insert into CARD_TRAN(id, lang1_id, read_only1, text1, tran1, lang2_id, read_only2, text2, tran2, notes)
+            values (:id, :lang1_id, :read_only1, :text1, :tran1, :lang2_id, :read_only2, :text2, :tran2, :notes) """,
+            card.__dict__
+        )
+    elif isinstance(card, CardFillGaps):
+        con.execute(
+            """ insert into CARD_FILL(id, lang_id, descr, text, notes)
+            values (:id, :lang_id, :descr, :text, :notes) """,
             card.__dict__
         )
     else:
@@ -110,6 +116,9 @@ def select_card(con: Connection, cache: Cache, card_id: int) -> AnyCard | None:
         case CardTypes.translate:
             row = con.execute(""" select * from CARD_TRAN where id = ? """, [card_id]).fetchone()
             return CardTranslate(base=base_card, **row)
+        case CardTypes.fill_gaps:
+            row = con.execute(""" select * from CARD_FILL where id = ? """, [card_id]).fetchone()
+            return CardFillGaps(base=base_card, **row)
         case _:
             raise Exception(f'Unexpected card type: {card_type_code}')
 
@@ -118,8 +127,16 @@ def update_card(con: Connection, card: AnyCard) -> None:
     if isinstance(card, CardTranslate):
         con.execute(
             """
-                update CARD_TRAN set lang1_id = :lang1_id, read_only1 = :read_only1, text1 = :text1, tran1 = :tran1, 
-                lang2_id = :lang2_id, read_only2 = :read_only2, text2 = :text2, tran2 = :tran2
+                update CARD_TRAN set lang1_id = :lang1_id, read_only1 = :read_only1, text1 = :text1, 
+                lang2_id = :lang2_id, read_only2 = :read_only2, text2 = :text2, notes = :notes
+                where id = :id
+            """,
+            card.__dict__
+        )
+    elif isinstance(card, CardFillGaps):
+        con.execute(
+            """
+                update CARD_FILL set lang_id = :lang_id, descr = :descr, text = :text, notes = :notes
                 where id = :id
             """,
             card.__dict__
@@ -135,8 +152,9 @@ def delete_card(con: Connection, card_id: int) -> None:
 def insert_translate_card(
         con: Connection, cache: Cache,
         folder_id: int,
-        lang1_id: int, read_only1: int, text1: str, tran1: str,
-        lang2_id: int, read_only2: int, text2: str, tran2: str,
+        lang1_id: int, read_only1: int, text1: str,
+        lang2_id: int, read_only2: int, text2: str,
+        notes: str,
 ) -> int:
     return insert_card(
         con,
@@ -146,11 +164,28 @@ def insert_translate_card(
             lang1_id=lang1_id,
             read_only1=read_only1,
             text1=text1,
-            tran1=tran1,
             lang2_id=lang2_id,
             read_only2=read_only2,
             text2=text2,
-            tran2=tran2,
+            notes=notes
+        )
+    )
+
+
+def insert_fill_gaps_card(
+        con: Connection, cache: Cache,
+        folder_id: int,
+        lang_id: int, descr: str, text: str, notes: str
+) -> int:
+    return insert_card(
+        con,
+        cache,
+        CardFillGaps(
+            base=BaseCard(folder_id=folder_id),
+            lang_id=lang_id,
+            descr=descr,
+            text=text,
+            notes=notes,
         )
     )
 

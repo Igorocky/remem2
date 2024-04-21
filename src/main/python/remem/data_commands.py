@@ -28,8 +28,8 @@ def cmd_make_new_folder(ctx: AppCtx) -> None:
     curr_folder_path = cache.get_curr_folder_path()
     new_folder_id = insert_folder(
         db.con, Folder(parent_id=curr_folder_path[-1].id if len(curr_folder_path) > 0 else None, name=name))
-    c.success('A folder created')
-    c.info(f'{name}:{new_folder_id}')
+    cache.set_curr_folder(new_folder_id)
+    cmd_show_current_folder(ctx)
 
 
 def cmd_show_current_folder(ctx: AppCtx) -> None:

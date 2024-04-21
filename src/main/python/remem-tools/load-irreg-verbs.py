@@ -36,11 +36,10 @@ def fill_database(words: list[Tuple[str, str, str, str]]) -> None:
                 lang1_id=4,
                 read_only1=1,
                 text1=native,
-                tran1='',
                 lang2_id=1,
                 read_only2=0,
                 text2=f'{f1.strip()} {f2.strip()} {f3.strip()}',
-                tran2='',
+                notes=''
             )
 
 

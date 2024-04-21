@@ -14,6 +14,8 @@ windll.shcore.SetProcessDpiAwareness(1)
 @dataclass
 class Widget:
     sticky: str | None = None
+    colspan: int = 1
+    rowspan: int = 1
 
 
 @dataclass
@@ -96,7 +98,7 @@ def render_grid(parent: tk.Widget, children: list[list[Widget]], child_pad: Tupl
                     widget.configure(variable=child.var)  # type: ignore[call-overload]
             else:
                 raise Exception(f'Unexpected type of widget: {child}')
-            widget.grid(row=row, column=col)
+            widget.grid(row=row, column=col, columnspan=child.colspan, rowspan=child.rowspan)
             if child.sticky is not None:
                 widget.grid_configure(sticky=child.sticky)
     for ch in frame.winfo_children():
@@ -145,28 +147,25 @@ def render_card_translate(
 
     lang1_str = StringVar(value=cache.lang_is[card.lang1_id])
     read_only1 = IntVar(value=card.read_only1)
-    text1 = StringVar(value=card.text1)
-    tran1 = StringVar(value=card.tran1)
+    text1: list[tk.Text] = []
     lang2_str = StringVar(value=cache.lang_is[card.lang2_id])
     read_only2 = IntVar(value=card.read_only2)
-    text2 = StringVar(value=card.text2)
-    tran2 = StringVar(value=card.tran2)
+    text2: list[tk.Text] = []
+    notes: list[tk.Text] = []
 
     def do_save() -> None:
         card.lang1_id = cache.lang_si[lang1_str.get()]
         card.read_only1 = read_only1.get()
-        card.text1 = text1.get()
-        card.tran1 = tran1.get()
+        card.text1 = text1[0].get(1.0, 'end')
         card.lang2_id = cache.lang_si[lang2_str.get()]
         card.read_only2 = read_only2.get()
-        card.text2 = text2.get()
-        card.tran2 = tran2.get()
+        card.text2 = text2[0].get(1.0, 'end')
+        card.notes = notes[0].get(1.0, 'end')
         result = on_save(card)
         if result.is_success() and not is_edit:
-            text1.set('')
-            tran1.set('')
-            text2.set('')
-            tran2.set('')
+            text1[0].delete(1.0, 'end')
+            text2[0].delete(1.0, 'end')
+            notes[0].delete(1.0, 'end')
         if result.is_failure():
             messagebox.showerror(message=str(result.ex))
 
@@ -177,22 +176,26 @@ def render_card_translate(
             Label(text='Language', sticky=tk.W),
             Empty(),
             Label(text='Text', sticky=tk.W),
-            Label(text='Transcription', sticky=tk.W),
         ],
         [
-            Combobox(values=langs, width=lang_width, var=lang1_str),
-            Checkbutton(text='read only', var=read_only1),
-            Entry(width=100, var=text1),
-            Entry(width=20, var=tran1),
+            Combobox(values=langs, width=lang_width, var=lang1_str, sticky=tk.NW),
+            Checkbutton(text='read only', var=read_only1, sticky=tk.NW),
+            Text(width=100, height=5, init_value=card.text1, holder=text1, sticky=tk.NW),
         ],
         [
-            Combobox(values=langs, width=lang_width, var=lang2_str),
-            Checkbutton(text='read only', var=read_only2),
-            Entry(width=100, var=text2),
-            Entry(width=20, var=tran2),
+            Combobox(values=langs, width=lang_width, var=lang2_str, sticky=tk.NW),
+            Checkbutton(text='read only', var=read_only2, sticky=tk.NW),
+            Text(width=100, height=5, init_value=card.text2, holder=text2, sticky=tk.NW),
         ],
         [
+            Label(text='Notes', sticky=tk.NW),
             Empty(),
+            Empty(),
+        ],
+        [
+            Text(width=118, height=5, init_value=card.notes, holder=notes, colspan=3, sticky=tk.NW),
+        ],
+        [
             Empty(),
             Empty(),
             Button(text='Save' if is_edit else 'Add', sticky=tk.E, cmd=do_save)
@@ -210,15 +213,18 @@ def render_card_fill(
     if card is None:
         card = CardFillGaps(lang_id=cache.get_card_fill_lang_id())
     lang_str = StringVar(value=cache.lang_is[card.lang_id])
+    descr: list[tk.Text] = []
     text: list[tk.Text] = []
     notes: list[tk.Text] = []
 
     def do_save() -> None:
         card.lang_id = cache.lang_si[lang_str.get()]
+        card.descr = descr[0].get(1.0, 'end')
         card.text = text[0].get(1.0, 'end')
         card.notes = notes[0].get(1.0, 'end')
         result = on_save(card)
         if result.is_success() and not is_edit:
+            descr[0].delete(1.0, 'end')
             text[0].delete(1.0, 'end')
             notes[0].delete(1.0, 'end')
         if result.is_failure():
@@ -228,8 +234,9 @@ def render_card_fill(
     lang_width = max([len(lang) for lang in langs]) + 2
     return render_grid(parent, [
         [Label(text='Language', sticky=tk.E), Combobox(values=langs, width=lang_width, var=lang_str, sticky=tk.W)],
-        [Label(text='Text', sticky=tk.NE), Text(width=100, height=10, init_value=card.text, holder=text)],
-        [Label(text='Notes', sticky=tk.NE), Text(width=100, height=10, init_value=card.notes, holder=notes)],
+        [Label(text='Description', sticky=tk.NE), Text(width=100, height=5, init_value=card.descr, holder=descr)],
+        [Label(text='Text', sticky=tk.NE), Text(width=100, height=5, init_value=card.text, holder=text)],
+        [Label(text='Notes', sticky=tk.NE), Text(width=100, height=5, init_value=card.notes, holder=notes)],
         [Empty(), Button(text='Save' if is_edit else 'Add', sticky=tk.E, cmd=do_save)],
     ])
 

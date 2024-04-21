@@ -22,7 +22,7 @@ from unittest import TestCase
 
 def make_simple_card() -> CardFillGaps:
     return CardFillGaps(
-        lang_id=1, text='part1 [[ hidden1 | hint1 | note1 ]] part2 [[ hidden2 | hint2 | note2 ]] part3',
+        lang_id=1, descr='descr', text='part1 [[ hidden1 | hint1 | note1 ]] part2 [[ hidden2 | hint2 | note2 ]] part3',
         notes='common-notes')
 
 
@@ -123,6 +123,10 @@ class FlowTest(TestCase):
         self.assertEqual(
             f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
+{info}Description:{end}
+
+descr
+
 {prompt}Fill the gap #1:{end}
 
 part1 {_orange}#1{end} part2 {_orange}#2{end} part3
@@ -166,6 +170,10 @@ part1 {_orange}#1{end} part2 {_orange}#2{end} part3
         # then
         self.assertEqual(
             f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+
+{info}Description:{end}
+
+descr
 
 {success}V{end} #1 hidden1
     note1
@@ -213,6 +221,10 @@ part1 hidden1 part2 {_orange}#2{end} part3
         # then
         self.assertEqual(
             f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+
+{info}Description:{end}
+
+descr
 
 {success}V{end} #1 hidden1
     note1
@@ -264,6 +276,10 @@ hidden3
         # then
         self.assertEqual(
             f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+
+{info}Description:{end}
+
+descr
 
 {success}V{end} #1 hidden1
     note1
@@ -321,6 +337,10 @@ hidden2
         # then
         self.assertEqual(
             f"""{hint}e - exit    u - update card    p - show parameters{end}
+
+{info}Description:{end}
+
+descr
 
 {success}V{end} #1 hidden1
     note1

@@ -14,11 +14,11 @@ class CardTranslateSide:
     lang_str: str = ''
     read_only: int = 0
     text: str = ''
-    tran: str = ''
 
 
 @dataclass
 class TranslateTaskState(RepeatTaskState):
+    card: CardTranslate = field(default_factory=lambda: CardTranslate())
     src: CardTranslateSide = field(default_factory=lambda: CardTranslateSide())
     dst: CardTranslateSide = field(default_factory=lambda: CardTranslateSide())
     first_user_translation: None | str = None
@@ -35,14 +35,12 @@ def get_card_translate_side(cache: Cache, card: CardTranslate, dir12: bool, src:
             lang_str=cache.lang_is[card.lang1_id],
             read_only=card.read_only1,
             text=card.text1,
-            tran=card.tran1
         )
     else:
         return CardTranslateSide(
             lang_str=cache.lang_is[card.lang2_id],
             read_only=card.read_only2,
             text=card.text2,
-            tran=card.tran2
         )
 
 
@@ -52,7 +50,7 @@ def make_initial_state(cache: Cache, card: AnyCard, task: Task) -> TranslateTask
     dir12 = task.task_type_id == cache.task_types_si[TaskTypes.translate_12]
     src = get_card_translate_side(cache, card, dir12=dir12, src=True)
     dst = get_card_translate_side(cache, card, dir12=dir12, src=False)
-    return TranslateTaskState(task=task, src=src, dst=dst)
+    return TranslateTaskState(task=task, card=card, src=src, dst=dst)
 
 
 def render_state(c: Console, state: TranslateTaskState) -> None:
@@ -99,12 +97,14 @@ def render_state(c: Console, state: TranslateTaskState) -> None:
         c.print(state.dst.text)
         c.print()
 
-    # transcription
-    if (state.dst.tran != ''
+    # notes
+    if (state.card.notes != ''
             and (state.show_answer
                  or state.correct_translation_entered
                  or state.dst.read_only and state.first_user_translation is not None)):
-        c.print(c.mark_info('Transcription: ') + state.dst.tran)
+        c.info('Notes:')
+        c.print()
+        c.print(state.card.notes)
         c.print()
 
     # error message

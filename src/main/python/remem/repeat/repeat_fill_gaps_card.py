@@ -67,6 +67,13 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
         c.print(c.mark_prompt('(press Enter to go to the next task)'), end='')
         return
 
+    # description
+    if state.card.descr != '':
+        c.info('Description:')
+        c.print()
+        c.print(state.card.descr)
+        c.print()
+
     # answers
     for i in range(cur_gap_idx if cur_gap_idx is not None else len(state.answers)):
         status = c.mark_success('V')

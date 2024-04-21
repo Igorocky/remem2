@@ -38,11 +38,10 @@ class CardTranslate:
     lang1_id: int = -1
     read_only1: int = 0
     text1: str = ''
-    tran1: str = ''
     lang2_id: int = -1
     read_only2: int = 0
     text2: str = ''
-    tran2: str = ''
+    notes: str = ''
 
 
 @dataclass
@@ -50,6 +49,7 @@ class CardFillGaps:
     base: BaseCard = field(default_factory=lambda: BaseCard())
     id: int = -1
     lang_id: int = -1
+    descr: str = ''
     text: str = ''
     notes: str = ''
 
