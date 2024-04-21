@@ -365,3 +365,80 @@ part1 hidden1 part2 hidden2 part3
             ),
             state
         )
+
+    def test_invalid_card(self) -> None:
+        # given
+        task_id = 109
+        self._init_mocks()
+        card = make_simple_card()
+        card = dataclasses.replace(card, text='part1 [[ hidden1 | hint1 | note1 part2')
+        task = Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps])
+        state = make_initial_state(self.cache, card, task)
+
+        # when render the initial state
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}e - exit    u - update card    s - show statistics{end}
+
+{error}The card is not correctly formatted.{end}
+
+{prompt}(press Enter to go to the next task){end}""",
+            self._get_text_printed_to_console()
+        )
+
+        # when select the "update" command
+        state = process_user_input(state, '`u')
+
+        # then
+        self.assertEqual(
+            FillGapsTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps]),
+                show_answer=False,
+                edit_card=True,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                card=card,
+                card_is_valid=False,
+                text_parts=[],
+                answers=[],
+                hints=[],
+                notes=[],
+                first_user_inputs=[],
+                user_input=None,
+                correctness_indicator=None,
+                correct_text_entered=[],
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when press Enter to go to the next task
+        state.edit_card = False
+        state = process_user_input(state, '')
+
+        # then
+        self.assertEqual(
+            FillGapsTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.NEXT_TASK,
+                card=card,
+                card_is_valid=False,
+                text_parts=[],
+                answers=[],
+                hints=[],
+                notes=[],
+                first_user_inputs=[],
+                user_input=None,
+                correctness_indicator=None,
+                correct_text_entered=[],
+                err_msg=None,
+            ),
+            state
+        )

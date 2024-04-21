@@ -63,6 +63,7 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
     if not state.card_is_valid:
         c.error('The card is not correctly formatted.')
         c.print()
+        c.print(c.mark_prompt('(press Enter to go to the next task)'), end='')
         return
 
     # answers
