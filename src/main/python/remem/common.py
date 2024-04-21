@@ -3,6 +3,7 @@ import math
 import numbers
 import re
 import time
+from sqlite3 import Connection
 from typing import TypeVar, Callable, Generic, Tuple, Any
 from unittest import TestCase
 
@@ -188,3 +189,9 @@ class PrintTableFromDictsTest(TestCase):
                 {'id': 300000, 'name': 'CC', 'desc': 300000},
             ])
         )
+
+
+def enable_foreign_keys(con: Connection) -> None:
+    con.execute('pragma foreign_keys = ON')
+    if values(con.execute('pragma foreign_keys').fetchone())[0] != 1:
+        raise Exception('Could not set foreign_keys = ON.')

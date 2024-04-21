@@ -69,8 +69,10 @@ def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> N
     c = ctx.console
     buckets = load_buckets(ctx, task_ids, num_of_buckets=len(bucket_delays))
     curr_time_sec = int(time.time())
-    print(f"\n{c.mark_info('Bucket delays:')} {' '.join([seconds_to_duration_str(d) for d in bucket_delays])}")
-    print(f"\n{c.mark_info('Total number of tasks:')} {len(task_ids)}")
+    print(f"{c.mark_info('Bucket delays:')} {' '.join([seconds_to_duration_str(d) for d in bucket_delays])}")
+    print()
+    print(f"{c.mark_info('Total number of tasks:')} {len(task_ids)}")
+    print()
     bucket_counts: list[dict[str, Any]] = []
     for bucket_idx, bucket in enumerate(buckets):
         min_delay_sec = bucket_delays[bucket_idx]
@@ -94,6 +96,7 @@ def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> N
             'time_to_wait': time_to_wait_str,
         })
     print(print_table_from_dicts(bucket_counts))
+    print()
     ctx.console.ask_to_press_enter()
 
 

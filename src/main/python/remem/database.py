@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 
 from remem.app_settings import AppSettings
-from remem.common import values
+from remem.common import values, enable_foreign_keys
 from remem.console import Console
 
 
@@ -44,9 +44,7 @@ class Database:
         self.con = sqlite3.connect(app_settings.database_file,
                                    autocommit=True)  # type: ignore[call-arg]
         self.con.row_factory = dict_factory
-        self.con.execute('pragma foreign_keys = ON')
-        if values(self.con.execute('pragma foreign_keys').fetchone())[0] != 1:
-            raise Exception('Could not set foreign_keys = ON.')
+        enable_foreign_keys(self.con)
 
         db_ver = values(self.con.execute('pragma user_version').fetchone())[0]
         if db_ver == 0:
