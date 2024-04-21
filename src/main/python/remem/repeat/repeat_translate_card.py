@@ -201,8 +201,9 @@ def process_user_input(
         return update_state(state)
     if state.first_user_translation is None:
         mark = 1.0 if user_input == state.dst.text else 0.0
+        user_input_hist = user_input if mark != 1.0 else ''
         state = update_state(state, first_user_translation=user_input,
-                             hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=user_input))
+                             hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=user_input_hist))
     if user_input != state.dst.text:
         return update_state(state, user_translation=user_input, correctness_indicator=False)
     else:

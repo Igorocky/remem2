@@ -14,7 +14,7 @@ def copy_cards_with_history(
     db_from.row_factory = dict_factory
     enable_foreign_keys(db_from)
 
-    db_to = sqlite3.connect(db_file_to, autocommit=True)
+    db_to = sqlite3.connect(db_file_to, autocommit=True)  # type: ignore[call-arg]
     db_to.row_factory = dict_factory
     enable_foreign_keys(db_to)
 
@@ -55,7 +55,7 @@ def copy_cards_with_history(
     db_to.close()
 
 
-def main():
+def main() -> None:
     copy_cards_with_history(
         db_file_from='',
         folder_id_from=2,

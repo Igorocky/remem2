@@ -312,8 +312,7 @@ hidden2
                 show_answer=False,
                 edit_card=False,
                 print_stats=False,
-                hist_rec=TaskHistRec(task_id=task_id, mark=0.5, note='V exp: hidden1 & act: hidden1 | '
-                                                                     'X exp: hidden2 & act: hidden3'),
+                hist_rec=TaskHistRec(task_id=task_id, mark=0.5, note='exp: hidden2 & act: hidden3'),
                 task_continuation=TaskContinuation.CONTINUE_TASK,
                 card=card,
                 card_is_valid=True,

@@ -226,9 +226,9 @@ def process_user_input(
             mark = (sum(1 if state.first_user_inputs[i] == state.answers[i] else 0 for i in range(num_of_gaps))
                     / num_of_gaps)
             note = ' | '.join(
-                f'{"V" if state.answers[i] == state.first_user_inputs[i] else "X"} '
-                + f'exp: {state.answers[i]} & act: {state.first_user_inputs[i]}'
+                f'exp: {state.answers[i]} & act: {state.first_user_inputs[i]}'
                 for i in range(num_of_gaps)
+                if state.answers[i] != state.first_user_inputs[i]
             )
             state = update_state(state, hist_rec=TaskHistRec(time=None, task_id=state.task.id, mark=mark, note=note))
         correct_text_entered = state.correct_text_entered
