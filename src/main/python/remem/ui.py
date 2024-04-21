@@ -156,11 +156,11 @@ def render_card_translate(
     def do_save() -> None:
         card.lang1_id = cache.lang_si[lang1_str.get()]
         card.read_only1 = read_only1.get()
-        card.text1 = text1[0].get(1.0, 'end')
+        card.text1 = text1[0].get(1.0, 'end').strip()
         card.lang2_id = cache.lang_si[lang2_str.get()]
         card.read_only2 = read_only2.get()
-        card.text2 = text2[0].get(1.0, 'end')
-        card.notes = notes[0].get(1.0, 'end')
+        card.text2 = text2[0].get(1.0, 'end').strip()
+        card.notes = notes[0].get(1.0, 'end').strip()
         result = on_save(card)
         if result.is_success() and not is_edit:
             text1[0].delete(1.0, 'end')
@@ -219,9 +219,9 @@ def render_card_fill(
 
     def do_save() -> None:
         card.lang_id = cache.lang_si[lang_str.get()]
-        card.descr = descr[0].get(1.0, 'end')
-        card.text = text[0].get(1.0, 'end')
-        card.notes = notes[0].get(1.0, 'end')
+        card.descr = descr[0].get(1.0, 'end').strip()
+        card.text = text[0].get(1.0, 'end').strip()
+        card.notes = notes[0].get(1.0, 'end').strip()
         result = on_save(card)
         if result.is_success() and not is_edit:
             descr[0].delete(1.0, 'end')

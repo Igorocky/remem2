@@ -91,8 +91,8 @@ def insert_card(con: Connection, cache: Cache, card: AnyCard) -> int:
     card.id = card_id
     if isinstance(card, CardTranslate):
         con.execute(
-            """ insert into CARD_TRAN(id, lang1_id, read_only1, text1, tran1, lang2_id, read_only2, text2, tran2, notes)
-            values (:id, :lang1_id, :read_only1, :text1, :tran1, :lang2_id, :read_only2, :text2, :tran2, :notes) """,
+            """ insert into CARD_TRAN(id, lang1_id, read_only1, text1, lang2_id, read_only2, text2, notes)
+            values (:id, :lang1_id, :read_only1, :text1, :lang2_id, :read_only2, :text2, :notes) """,
             card.__dict__
         )
     elif isinstance(card, CardFillGaps):
