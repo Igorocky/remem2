@@ -57,9 +57,10 @@ def make_initial_state(cache: Cache, card: AnyCard, task: Task) -> TranslateTask
 
 def render_state(c: Console, state: TranslateTaskState) -> None:
     # commands
-    show_answer_cmd_descr = '' if state.dst.read_only or state.correct_translation_entered or state.show_answer \
+    show_answer_cmd = '' if state.dst.read_only or state.correct_translation_entered or state.show_answer \
         else 'a - show answer    '
-    c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics')
+    skip_cmd = '' if state.correct_translation_entered else '    s - skip this task'
+    c.hint(f'{show_answer_cmd}e - exit    u - update card    p - show parameters{skip_cmd}')
     c.print()
 
     # question
@@ -158,7 +159,9 @@ def process_user_input(
         match cmd:
             case 'e':
                 return update_state(state, task_continuation=TaskContinuation.EXIT)
-            case 'a' if not state.dst.read_only:
+            case 's':
+                return update_state(state, task_continuation=TaskContinuation.NEXT_TASK)
+            case 'a' if not (state.dst.read_only or state.correct_translation_entered or state.show_answer):
                 if state.first_user_translation is None:
                     return update_state(
                         state, first_user_translation='', show_answer=True,
@@ -167,7 +170,7 @@ def process_user_input(
                     return update_state(state, show_answer=True)
             case 'u':
                 return update_state(state, edit_card=True)
-            case 's':
+            case 'p':
                 return update_state(state, print_stats=True)
             case _:
                 return update_state(state, err_msg=f'Unknown command "{cmd}"')

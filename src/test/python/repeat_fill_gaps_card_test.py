@@ -121,7 +121,7 @@ class FlowTest(TestCase):
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Fill the gap #1:{end}
 
@@ -165,7 +165,7 @@ part1 {_orange}#1{end} part2 {_orange}#2{end} part3
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {success}V{end} #1 hidden1
     note1
@@ -212,7 +212,7 @@ part1 hidden1 part2 {_orange}#2{end} part3
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {success}V{end} #1 hidden1
     note1
@@ -263,7 +263,7 @@ hidden3
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {success}V{end} #1 hidden1
     note1
@@ -320,7 +320,7 @@ hidden2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters{end}
 
 {success}V{end} #1 hidden1
     note1
@@ -380,7 +380,7 @@ part1 hidden1 part2 hidden2 part3
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {error}The card is not correctly formatted.{end}
 

@@ -121,7 +121,7 @@ class FlowTest(TestCase):
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -161,7 +161,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -214,7 +214,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -254,7 +254,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -297,7 +297,7 @@ text3
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -350,7 +350,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -389,7 +389,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -429,7 +429,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -482,7 +482,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -522,7 +522,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -565,7 +565,7 @@ text3
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -612,7 +612,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -635,7 +635,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -675,7 +675,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -722,7 +722,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -745,7 +745,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    s - show statistics{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -785,7 +785,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -832,7 +832,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -861,7 +861,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -900,7 +900,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -953,7 +953,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -992,7 +992,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -1045,7 +1045,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -1056,7 +1056,7 @@ text2
         )
 
         # when select a command
-        state = process_user_input(state, '`s')
+        state = process_user_input(state, '`p')
 
         # then
         self.assertEqual(
@@ -1092,7 +1092,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -1131,7 +1131,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -1177,7 +1177,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    s - show statistics{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 

@@ -56,8 +56,9 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
         cur_gap_idx = None
 
     # commands
-    show_answer_cmd_descr = 'a - show answer    ' if cur_gap_idx is not None and not state.show_answer else ''
-    c.hint(f'{show_answer_cmd_descr}e - exit    u - update card    s - show statistics')
+    show_answer_cmd = 'a - show answer    ' if cur_gap_idx is not None and not state.show_answer else ''
+    skip_cmd = '' if cur_gap_idx is None and state.card_is_valid else '    s - skip this task'
+    c.hint(f'{show_answer_cmd}e - exit    u - update card    p - show parameters{skip_cmd}')
     c.print()
 
     if not state.card_is_valid:
@@ -182,6 +183,8 @@ def process_user_input(
         match cmd:
             case 'e':
                 return update_state(state, task_continuation=TaskContinuation.EXIT)
+            case 's':
+                return update_state(state, task_continuation=TaskContinuation.NEXT_TASK)
             case 'a' if cur_gap_idx is not None:
                 if state.first_user_inputs[cur_gap_idx] is None:
                     first_user_inputs = state.first_user_inputs.copy()
@@ -190,7 +193,7 @@ def process_user_input(
                 return update_state(state, show_answer=True)
             case 'u':
                 return update_state(state, edit_card=True)
-            case 's':
+            case 'p':
                 return update_state(state, print_stats=True)
             case _:
                 return update_state(state, err_msg=f'Unknown command "{cmd}"')
