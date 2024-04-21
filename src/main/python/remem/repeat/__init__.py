@@ -39,13 +39,14 @@ def select_random_tasks_from_beginning(
     dst: list[TaskWithHist] = []
     while len(dst) < max_num_of_tasks and len(src) > 0:
         rnd_prefix_len = 3 if len(sorted_tasks) >= 5 else 2
+        prefix = src[:rnd_prefix_len]
         for folder_id in preferred_folders:
-            tasks_to_select_from = [t for t in src[:rnd_prefix_len] if t.task.card.folder_id == folder_id]
+            tasks_to_select_from = [t for t in prefix if t.task.card.folder_id == folder_id]
             if len(tasks_to_select_from) > 0:
                 selected_task = tasks_to_select_from[random.randint(0, len(tasks_to_select_from) - 1)]
                 break
         else:
-            tasks_to_select_from = src[:rnd_prefix_len]
+            tasks_to_select_from = prefix
             selected_task = tasks_to_select_from[random.randint(0, len(tasks_to_select_from) - 1)]
         dst.append(selected_task)
         src = [t for t in src if t.task.id != selected_task.task.id]
