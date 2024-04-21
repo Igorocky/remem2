@@ -11,7 +11,7 @@ from remem.console import select_multiple_options, select_single_option, clear_s
 from remem.constants import TaskTypes
 from remem.dao import insert_task_hist, select_card
 from remem.data_commands import edit_card_by_id
-from remem.dtos import Task
+from remem.dtos import Task, TaskHistRec
 from remem.repeat import TaskContinuation
 from remem.repeat.strategy.buckets import repeat_tasks_with_buckets
 
@@ -172,6 +172,7 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> Tas
     if card is None:
         raise Exception(f'Cannot find a card by id {task.card_id}')
     state = make_initial_state(cache, card, task)
+    hist_rec: TaskHistRec | None = None
     while True:
         clear_screen()
         render_state(ctx.console, state)
@@ -186,7 +187,10 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> Tas
                     clear_screen()
                     print_stats()
                 if state.hist_rec:
-                    insert_task_hist(con, state.hist_rec)
+                    if hist_rec is not None:
+                        raise Exception('Internal error: hist_rec is not None')
+                    hist_rec = state.hist_rec
+                    insert_task_hist(con, hist_rec)
                     state.hist_rec = None
             case act:
                 return act
