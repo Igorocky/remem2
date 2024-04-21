@@ -1,8 +1,10 @@
 import datetime
 import math
+import numbers
 import re
 import time
 from typing import TypeVar, Callable, Generic, Tuple, Any
+from unittest import TestCase
 
 T = TypeVar('T')
 K = TypeVar('K')
@@ -135,3 +137,54 @@ def first_defined(*args: Any) -> Any:
         if arg is not None:
             return arg
     return None
+
+
+def print_table(header: list[str], data: list[list[Any]]) -> str:
+    if len(data) == 0:
+        return '-----------\nEmpty table\n-----------'
+    col_width = [len(h) for h in header]
+    col_is_number = [True for _ in header]
+    for r in data:
+        for i in range(len(r)):
+            col_is_number[i] = col_is_number[i] and (r[i] is None or isinstance(r[i], numbers.Number))
+            r[i] = str(r[i])
+            col_width[i] = max(col_width[i], len(r[i]))
+    header_str = ' '.join(
+        h.rjust(col_width[i]) if col_is_number[i] else h.ljust(col_width[i]) for i, h in enumerate(header)
+    )
+    delim = '-' * len(header_str)
+    res = [delim, header_str, delim]
+    for row in data:
+        res.append(' '.join(
+            c.rjust(col_width[i]) if col_is_number[i] else c.ljust(col_width[i]) for i, c in enumerate(row)
+        ))
+    res.append(delim)
+    return '\n'.join(res)
+
+
+def print_table_from_dicts(data: list[dict[str, Any]]) -> str:
+    if len(data) == 0:
+        return '-----------\nEmpty table\n-----------'
+    header = list(data[0].keys())
+    return print_table(
+        header=header,
+        data=[[d[h] if h in d else None for h in header] for d in data]
+    )
+
+
+class PrintTableFromDictsTest(TestCase):
+    def test_print_table_from_dicts(self) -> None:
+        self.assertEqual(
+            """------------------
+    id name desc  
+------------------
+     1 AA   10    
+  None BB   ..    
+300000 CC   300000
+------------------""",
+            print_table_from_dicts([
+                {'id': 1, 'name': 'AA', 'desc': 10},
+                {'id': None, 'name': 'BB', 'desc': '..'},
+                {'id': 300000, 'name': 'CC', 'desc': 300000},
+            ])
+        )
