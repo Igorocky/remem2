@@ -2,6 +2,8 @@ import re
 import sqlite3
 from dataclasses import dataclass, field
 
+from remem.database import dict_factory
+
 tmp_dir_path = '../../../../../../../temp'
 
 
@@ -20,8 +22,8 @@ class Word:
 
 
 def load_irreg_verbs() -> list[IrregVerb]:
-    con = sqlite3.connect(f'{tmp_dir_path}/irreg-verbs/remem__2024_04_16__19_02_09.sqlite')
-    con.row_factory = sqlite3.Row
+    con = sqlite3.connect(f'{tmp_dir_path}/irreg-verbs/remem__2024_04_21__16_08_58.sqlite')
+    con.row_factory = dict_factory
     res = []
     for r in con.execute("""
         select ct.text1, ct.text2 
@@ -36,12 +38,12 @@ def load_irreg_verbs() -> list[IrregVerb]:
 
 
 def load_sentences() -> list[str]:
-    sentences = []
+    sentences = set()
     with open(f'{tmp_dir_path}/irreg-verbs/rus.txt', 'r', encoding='utf-8') as file:
         for line in file:
             parts = line.split('\t')
-            sentences.append(parts[0])
-    return sentences
+            sentences.add(parts[0])
+    return list(sentences)
 
 
 def sanitize_word(w: str) -> str:
@@ -64,6 +66,13 @@ def load_words() -> dict[str, Word]:
     return words
 
 
+def print_verb(verb: IrregVerb) -> str:
+    res = [f't\t{verb.tran}', f'f\t\t{verb.form}', f'w\t\t{verb.text}']
+    for example in verb.examples:
+        res.append(f'e\t\t\t{example}')
+    return '\n'.join(res)
+
+
 def main() -> None:
     verbs = load_irreg_verbs()
     print(f'{len(verbs)=}')
@@ -76,10 +85,10 @@ def main() -> None:
             verb.examples = words[verb.text].examples
     pct = len([1 for v in verbs if len(v.examples) > 0]) / len(verbs)
     print(f'{pct=}')
-    with open(f'{tmp_dir_path}/irreg-verbs/examples.txt', 'w', encoding='utf-8') as file:
-        file.writelines([str(v) + '\n' for v in verbs])
+    with open(f'{tmp_dir_path}/irreg-verbs/verbs-with-examples.txt', 'w', encoding='utf-8') as file:
+        file.writelines([print_verb(v) + '\n\n' for v in verbs if len(v.examples) > 0])
     with open(f'{tmp_dir_path}/irreg-verbs/verbs-without-examples.txt', 'w', encoding='utf-8') as file:
-        file.writelines([str(v) + '\n' for v in verbs if len(v.examples) == 0])
+        file.writelines([print_verb(v) + '\n\n' for v in verbs if len(v.examples) == 0])
 
 
 if __name__ == '__main__':

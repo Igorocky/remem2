@@ -14,8 +14,11 @@ class AppCtx:
     cache: Cache
 
 
-def init_app_context(settings_path: str) -> AppCtx:
-    app_settings = load_app_settings(settings_path)
+def init_app_context(settings_path: str | None = None, app_settings: AppSettings | None = None) -> AppCtx:
+    if settings_path is not None:
+        app_settings = load_app_settings(settings_path)
+    else:
+        assert app_settings is not None
     c = Console(app_settings=app_settings)
     database = Database(app_settings=app_settings, c=c)
     cache = Cache(database)
