@@ -6,7 +6,6 @@ from remem.database import dict_factory
 
 def copy_examples_from_file_to_db(
         db_file: str,
-        folder_id: int,
         file_with_examples: str,
 ) -> None:
     db = sqlite3.connect(db_file, autocommit=True)  # type: ignore[call-arg]
@@ -52,7 +51,6 @@ def copy_examples_from_file_to_db(
 def main() -> None:
     copy_examples_from_file_to_db(
         db_file='',
-        folder_id=4,
         file_with_examples=''
     )
 
