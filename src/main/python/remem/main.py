@@ -47,6 +47,7 @@ def main() -> None:
             inp = c.input('> ').strip()
             cmds = commands.find_commands_by_pattern(inp)
             if len(cmds) == 1:
+                print(c.mark_info('Command: ') + cmds[0].name)
                 print()
                 cmds[0].func()
             elif len(cmds) == 0:

@@ -32,6 +32,8 @@ def copy_examples_from_file_to_db(
                 if text is not None:
                     raise Exception(f'text is not None for {descr=} {notes=} duplicated text: {line[1:].strip()}')
                 text = line[1:].strip()
+                if notes is None:
+                    raise Exception(f'notes is None for {descr=}')
                 note_parts = notes.split(' ')
                 form = int(note_parts[0])
                 verb = note_parts[form]
