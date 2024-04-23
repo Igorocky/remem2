@@ -9,6 +9,7 @@ tmp_dir_path = '../../../../../../../temp'
 
 @dataclass
 class IrregVerb:
+    id: int
     descr: str
     text: str
     notes: str
@@ -28,7 +29,7 @@ def load_irreg_verbs(db_file: str) -> list[IrregVerb]:
     con.row_factory = dict_factory
     res = []
     for r in con.execute("""
-        select descr, text, notes 
+        select id, descr, text, notes 
         from CARD_FILL
         where text == ''
         order by descr, notes
@@ -37,7 +38,7 @@ def load_irreg_verbs(db_file: str) -> list[IrregVerb]:
         parts = notes.split(' ')
         form = int(parts[0])
         verb = parts[form]
-        res.append(IrregVerb(descr=r['descr'], text=r['text'], notes=notes, form=form, verb=verb))
+        res.append(IrregVerb(id=r['id'], descr=r['descr'], text=r['text'], notes=notes, form=form, verb=verb))
     return res
 
 
@@ -67,15 +68,16 @@ def load_words() -> dict[str, Word]:
                 if word_str not in words:
                     words[word_str] = Word(text=word_str, examples=[])
                 words[word_str].examples.append(s)
+    for word in words.values():
+        word.examples.sort(key=lambda example: -len(example))
     return words
 
 
 def print_verb(verb: IrregVerb) -> str:
     res = [
+        f'i\t{verb.id}',
         f'd\t{verb.descr}',
         f'n\t\t{verb.notes}',
-        f'f\t\t{verb.form}',
-        f'v\t\t{verb.verb}',
     ]
     for example in verb.examples:
         res.append(f'e\t\t\t{example}')
@@ -95,7 +97,7 @@ def main() -> None:
     pct = len([1 for v in verbs if len(v.examples) > 0]) / len(verbs)
     print(f'{pct=}')
     with open(f'{tmp_dir_path}/irreg-verbs/verbs-with-examples.txt', 'w', encoding='utf-8') as file:
-        file.writelines([print_verb(v) + '\n\n' for v in verbs if len(v.examples) > 0])
+        file.writelines([print_verb(v) + '\n\n' for v in verbs])
 
 
 if __name__ == '__main__':
