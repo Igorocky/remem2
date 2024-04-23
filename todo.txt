@@ -1,7 +1,7 @@
 - fix the bug when history is not saved for a task
 - add new task type: fill gaps reversed
 - implement stub cards and plugins
-- fix a bug: it is not possible to quit the parameters view when there are no active cards
 
 Done:
+- fix a bug: it is not possible to quit the parameters view when there are no active cards
 - print full name of the selected command

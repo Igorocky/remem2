@@ -154,7 +154,7 @@ def select_task_ids(ctx: AppCtx, folder_ids: list[int], task_types: list[TaskTyp
     )]
 
 
-def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> TaskContinuation:
+def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], bool]) -> TaskContinuation:
     cache = ctx.cache
     match cache.task_types_is[task.task_type_id]:
         case TaskTypes.translate_12 | TaskTypes.translate_21:
@@ -185,7 +185,8 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], None]) -> Tas
                 if state.print_stats:
                     state.print_stats = False
                     clear_screen()
-                    print_stats()
+                    if not print_stats():
+                        return TaskContinuation.EXIT
                 if state.hist_rec:
                     if hist_rec is not None:
                         raise Exception('Internal error: hist_rec is not None')
