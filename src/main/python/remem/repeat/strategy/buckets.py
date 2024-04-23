@@ -128,6 +128,7 @@ def repeat_tasks_with_buckets(
                 clear_screen()
                 if not print_stats(ctx, task_ids, bucket_delays):
                     return
+                continue
         act = repeat_task(
             ctx,
             Task(**{k: v for k, v in tasks.pop(0).task.__dict__.items() if k != 'card'}),

@@ -177,22 +177,23 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], bool]) -> Tas
         clear_screen()
         render_state(ctx.console, state)
         state = process_user_input(state, input().strip())
+        if state.hist_rec is not None:
+            if hist_rec is not None:
+                raise Exception('Internal error: hist_rec is not None')
+            hist_rec = state.hist_rec
+            insert_task_hist(con, hist_rec)
+            state.hist_rec = None
+        if state.edit_card:
+            state.edit_card = False
+            edit_card_by_id(ctx, state.task.card_id)
+        if state.print_stats:
+            state.print_stats = False
+            clear_screen()
+            if not print_stats():
+                return TaskContinuation.EXIT
         match state.task_continuation:
             case TaskContinuation.CONTINUE_TASK:
-                if state.edit_card:
-                    state.edit_card = False
-                    edit_card_by_id(ctx, state.task.card_id)
-                if state.print_stats:
-                    state.print_stats = False
-                    clear_screen()
-                    if not print_stats():
-                        return TaskContinuation.EXIT
-                if state.hist_rec:
-                    if hist_rec is not None:
-                        raise Exception('Internal error: hist_rec is not None')
-                    hist_rec = state.hist_rec
-                    insert_task_hist(con, hist_rec)
-                    state.hist_rec = None
+                continue
             case act:
                 return act
 

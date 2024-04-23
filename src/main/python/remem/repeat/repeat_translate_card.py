@@ -176,10 +176,10 @@ def process_user_input(
                 return update_state(state, err_msg=f'Unknown command "{cmd}"')
 
     if state.enter_mark:
+        user_input = user_input.strip()
+        if user_input.startswith('`'):
+            return process_command(user_input[1:])
         try:
-            user_input = user_input.strip()
-            if user_input.startswith('`'):
-                return process_command(user_input[1:])
             mark = 1.0 if user_input == '' else float(user_input)
             if not (0.0 <= mark <= 1.0):
                 return update_state(state, enter_mark=True,
