@@ -1,4 +1,5 @@
 import dataclasses
+import webbrowser
 from dataclasses import dataclass
 from typing import Callable, Tuple
 
@@ -154,6 +155,26 @@ def select_task_ids(ctx: AppCtx, folder_ids: list[int], task_types: list[TaskTyp
     )]
 
 
+def find_in_dictionary(ctx: AppCtx, lang_str: str, dict_idx: int, words: list[str]) -> None:
+    c = ctx.console
+    dictionaries = ctx.settings.dictionaries
+    if lang_str not in dictionaries:
+        c.error(f'No dictionary is set for "{lang_str}" language.')
+        print()
+        c.input('press Enter')
+    else:
+        dicts_for_lang = dictionaries[lang_str]
+        if len(dicts_for_lang) < dict_idx + 1:
+            c.error(f'Only {len(dicts_for_lang)} dictionaries are available for "{lang_str}" language, '
+                    f'but the #{dict_idx + 1} was requested.')
+            print()
+            c.input('press Enter')
+        else:
+            dict_url = list(dicts_for_lang.values())[dict_idx]
+            for word in words:
+                webbrowser.open_new_tab(dict_url.replace('{word}', word))
+
+
 def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], bool]) -> TaskContinuation:
     cache = ctx.cache
     match cache.task_types_is[task.task_type_id]:
@@ -191,6 +212,9 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], bool]) -> Tas
             clear_screen()
             if not print_stats():
                 return TaskContinuation.EXIT
+        if state.find_in_dictionary is not None:
+            find_in_dictionary(ctx, *state.find_in_dictionary)
+            state.find_in_dictionary = None
         match state.task_continuation:
             case TaskContinuation.CONTINUE_TASK:
                 continue
