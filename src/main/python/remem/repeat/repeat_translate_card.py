@@ -1,5 +1,6 @@
 import dataclasses
 from dataclasses import dataclass, field
+from typing import Tuple
 
 from remem.cache import Cache
 from remem.common import first_defined
@@ -58,7 +59,8 @@ def render_state(c: Console, state: TranslateTaskState) -> None:
     show_answer_cmd = '' if state.dst.read_only or state.correct_translation_entered or state.show_answer \
         else 'a - show answer    '
     skip_cmd = '' if state.correct_translation_entered else '    s - skip this task'
-    c.hint(f'{show_answer_cmd}e - exit    u - update card    p - show parameters{skip_cmd}')
+    open_dict_cmd = '    d - find in dictionary' if state.first_user_translation is not None else ''
+    c.hint(f'{show_answer_cmd}e - exit    u - update card    p - show parameters{open_dict_cmd}{skip_cmd}')
     c.print()
 
     # question
@@ -139,6 +141,7 @@ def process_user_input(
             hist_rec: TaskHistRec | None = None,
             err_msg: str | None = None,
             task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK,
+            find_in_dictionary: Tuple[str, int, list[str]] | None = None
     ) -> TranslateTaskState:
         return dataclasses.replace(
             st,
@@ -152,10 +155,14 @@ def process_user_input(
             print_stats=print_stats,
             hist_rec=first_defined(hist_rec, st.hist_rec),
             err_msg=err_msg,
-            task_continuation=task_continuation
+            task_continuation=task_continuation,
+            find_in_dictionary=find_in_dictionary,
         )
 
     def process_command(cmd: str) -> TranslateTaskState:
+        if cmd.startswith('d') and state.first_user_translation is not None:
+            dict_idx = int(cmd[:1])-1 if len(cmd) > 1 else 0
+            return update_state(state, find_in_dictionary=(state.dst.lang_str, dict_idx, [state.dst.text]))
         match cmd:
             case 'e':
                 return update_state(state, task_continuation=TaskContinuation.EXIT)

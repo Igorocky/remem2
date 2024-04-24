@@ -1,5 +1,6 @@
 import dataclasses
 from dataclasses import dataclass, field
+from typing import Tuple
 
 from remem.cache import Cache
 from remem.common import extract_gaps_from_text, first_defined
@@ -13,6 +14,7 @@ orange = (255, 109, 10)
 @dataclass
 class FillGapsTaskState(RepeatTaskState):
     card: CardFillGaps = field(default_factory=lambda: CardFillGaps())
+    lang_str: str = ''
     card_is_valid: bool = False
     text_parts: list[str] = field(default_factory=lambda: [])
     answers: list[str] = field(default_factory=lambda: [])
@@ -33,12 +35,14 @@ def make_initial_state(cache: Cache, card: AnyCard, task: Task) -> FillGapsTaskS
         return FillGapsTaskState(
             task=task,
             card=card,
+            lang_str=cache.lang_is[card.lang_id],
             card_is_valid=False,
         )
     text_parts, answers, hints, notes = gaps
     return FillGapsTaskState(
         task=task,
         card=card,
+        lang_str=cache.lang_is[card.lang_id],
         card_is_valid=True,
         text_parts=text_parts,
         answers=answers,
@@ -58,7 +62,8 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
     # commands
     show_answer_cmd = 'a - show answer    ' if cur_gap_idx is not None and not state.show_answer else ''
     skip_cmd = '' if cur_gap_idx is None and state.card_is_valid else '    s - skip this task'
-    c.hint(f'{show_answer_cmd}e - exit    u - update card    p - show parameters{skip_cmd}')
+    open_dict_cmd = '    d - find in dictionary' if any(v is not None for v in state.first_user_inputs) else ''
+    c.hint(f'{show_answer_cmd}e - exit    u - update card    p - show parameters{open_dict_cmd}{skip_cmd}')
     c.print()
 
     if not state.card_is_valid:
@@ -165,6 +170,7 @@ def process_user_input(
             hist_rec: TaskHistRec | None = None,
             err_msg: str | None = None,
             task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK,
+            find_in_dictionary: Tuple[str, int, list[str]] | None = None,
     ) -> FillGapsTaskState:
         return dataclasses.replace(
             st,
@@ -178,6 +184,7 @@ def process_user_input(
             hist_rec=first_defined(hist_rec, st.hist_rec),
             err_msg=err_msg,
             task_continuation=task_continuation,
+            find_in_dictionary=find_in_dictionary,
         )
 
     if state.card_is_valid and not all(state.correct_text_entered):
@@ -187,6 +194,11 @@ def process_user_input(
 
     def process_command(cmd: str) -> FillGapsTaskState:
         nonlocal state
+
+        if cmd.startswith('d') and any(v is not None for v in state.first_user_inputs):
+            dict_idx = int(cmd[:1]) - 1 if len(cmd) > 1 else 0
+            ans_to_search = [state.answers[i] for i, inp in enumerate(state.first_user_inputs) if inp is not None]
+            return update_state(state, find_in_dictionary=(state.lang_str, dict_idx, ans_to_search))
         match cmd:
             case 'e':
                 return update_state(state, task_continuation=TaskContinuation.EXIT)

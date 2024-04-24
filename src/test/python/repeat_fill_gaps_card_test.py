@@ -59,6 +59,7 @@ class MakeInitialStateTest(TestCase):
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
                 card=self.card,
+                lang_str='EN',
                 card_is_valid=True,
                 text_parts=['part1', 'part2', 'part3'],
                 answers=['hidden1', 'hidden2'],
@@ -92,6 +93,7 @@ class MakeInitialStateTest(TestCase):
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
                 card=card,
+                lang_str='EN',
                 card_is_valid=False,
             ),
             state
@@ -150,6 +152,7 @@ part1 {_orange}#1{end} part2 {_orange}#2{end} part3
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
                 card=card,
+                lang_str='EN',
                 card_is_valid=True,
                 text_parts=['part1', 'part2', 'part3'],
                 answers=['hidden1', 'hidden2'],
@@ -169,7 +172,7 @@ part1 {_orange}#1{end} part2 {_orange}#2{end} part3
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {info}Description:{end}
 
@@ -188,6 +191,35 @@ part1 hidden1 part2 {_orange}#2{end} part3
             self._get_text_printed_to_console()
         )
 
+        # when the "find in dictionary" command is selected after the first input
+        state = process_user_input(state, '`d')
+
+        # then
+        self.assertEqual(
+            FillGapsTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                card=card,
+                lang_str='EN',
+                card_is_valid=True,
+                text_parts=['part1', 'part2', 'part3'],
+                answers=['hidden1', 'hidden2'],
+                hints=['hint1', 'hint2'],
+                notes=['note1', 'note2'],
+                first_user_inputs=['hidden1', None],
+                user_input=None,
+                correctness_indicator=None,
+                correct_text_entered=[True, False],
+                err_msg=None,
+                find_in_dictionary=('EN', 0, ['hidden1'])
+            ),
+            state
+        )
+
         # when the second input is incorrect
         state = process_user_input(state, 'hidden3')
 
@@ -201,6 +233,7 @@ part1 hidden1 part2 {_orange}#2{end} part3
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
                 card=card,
+                lang_str='EN',
                 card_is_valid=True,
                 text_parts=['part1', 'part2', 'part3'],
                 answers=['hidden1', 'hidden2'],
@@ -220,7 +253,7 @@ part1 hidden1 part2 {_orange}#2{end} part3
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {info}Description:{end}
 
@@ -243,6 +276,35 @@ hidden3
             self._get_text_printed_to_console()
         )
 
+        # when the "find in dictionary" command is selected after the second input
+        state = process_user_input(state, '`d')
+
+        # then
+        self.assertEqual(
+            FillGapsTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                card=card,
+                lang_str='EN',
+                card_is_valid=True,
+                text_parts=['part1', 'part2', 'part3'],
+                answers=['hidden1', 'hidden2'],
+                hints=['hint1', 'hint2'],
+                notes=['note1', 'note2'],
+                first_user_inputs=['hidden1', 'hidden3'],
+                user_input=None,
+                correctness_indicator=None,
+                correct_text_entered=[True, False],
+                err_msg=None,
+                find_in_dictionary=('EN', 0, ['hidden1', 'hidden2'])
+            ),
+            state
+        )
+
         # when the "show answer" command is selected
         state = process_user_input(state, '`a')
 
@@ -256,6 +318,7 @@ hidden3
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
                 card=card,
+                lang_str='EN',
                 card_is_valid=True,
                 text_parts=['part1', 'part2', 'part3'],
                 answers=['hidden1', 'hidden2'],
@@ -275,7 +338,7 @@ hidden3
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {info}Description:{end}
 
@@ -315,6 +378,7 @@ hidden2
                 hist_rec=TaskHistRec(task_id=task_id, mark=0.5, note='exp: hidden2 & act: hidden3'),
                 task_continuation=TaskContinuation.CONTINUE_TASK,
                 card=card,
+                lang_str='EN',
                 card_is_valid=True,
                 text_parts=['part1', 'part2', 'part3'],
                 answers=['hidden1', 'hidden2'],
@@ -335,7 +399,7 @@ hidden2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary{end}
 
 {info}Description:{end}
 
@@ -371,6 +435,7 @@ part1 hidden1 part2 hidden2 part3
                 hist_rec=None,
                 task_continuation=TaskContinuation.NEXT_TASK,
                 card=card,
+                lang_str='EN',
                 card_is_valid=True,
                 text_parts=['part1', 'part2', 'part3'],
                 answers=['hidden1', 'hidden2'],
@@ -420,6 +485,7 @@ part1 hidden1 part2 hidden2 part3
                 hist_rec=None,
                 task_continuation=TaskContinuation.CONTINUE_TASK,
                 card=card,
+                lang_str='EN',
                 card_is_valid=False,
                 text_parts=[],
                 answers=[],
@@ -448,6 +514,7 @@ part1 hidden1 part2 hidden2 part3
                 hist_rec=None,
                 task_continuation=TaskContinuation.NEXT_TASK,
                 card=card,
+                lang_str='EN',
                 card_is_valid=False,
                 text_parts=[],
                 answers=[],

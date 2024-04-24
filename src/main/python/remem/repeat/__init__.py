@@ -1,6 +1,7 @@
 import random
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Tuple
 
 from remem.dtos import TaskWithBaseCard, TaskHistRec, Task
 
@@ -26,6 +27,7 @@ class RepeatTaskState:
     print_stats: bool = False
     hist_rec: TaskHistRec | None = None
     task_continuation: TaskContinuation = TaskContinuation.CONTINUE_TASK
+    find_in_dictionary: Tuple[str, int, list[str]] | None = None
 
 
 def select_random_tasks_from_beginning(

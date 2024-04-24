@@ -165,7 +165,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -262,7 +262,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -306,7 +306,7 @@ text3
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -443,7 +443,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -540,7 +540,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -584,7 +584,7 @@ text3
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -634,7 +634,7 @@ notes
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -698,7 +698,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -748,7 +748,7 @@ notes
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -812,7 +812,7 @@ text1
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -862,7 +862,7 @@ notes
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary{end}
 
 {prompt}Write translation to EN for:{end}
 
@@ -933,7 +933,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -1029,7 +1029,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -1173,7 +1173,7 @@ text2
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -1222,7 +1222,7 @@ notes
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {prompt}Recall translation to PL for:{end}
 
@@ -1261,6 +1261,42 @@ notes
                 correct_translation_entered=True,
                 enter_mark=True,
                 err_msg=None,
+            ),
+            state
+        )
+
+    def test_find_in_dictionary(self) -> None:
+        # given
+        task_id = 391
+        self._init_mocks()
+        card = make_simple_card()
+        task = Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12])
+        state = make_initial_state(self.cache, card, task)
+        state = process_user_input(state, 'text2')
+        state.hist_rec = None
+
+        # when the "find in dictionary" command is selected
+        state = process_user_input(state, '`d')
+
+        # then
+        self.assertEqual(
+            TranslateTaskState(
+                card=card,
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.translate_12]),
+                show_answer=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                src=CardTranslateSide(lang_str='PL', read_only=1, text='text1'),
+                dst=CardTranslateSide(lang_str='EN', read_only=0, text='text2'),
+                first_user_translation='text2',
+                user_translation=None,
+                correctness_indicator=None,
+                correct_translation_entered=True,
+                enter_mark=False,
+                err_msg=None,
+                find_in_dictionary=('EN', 0, ['text2'])
             ),
             state
         )
