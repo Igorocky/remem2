@@ -75,6 +75,50 @@ def cmd_select_folder(ctx: AppCtx) -> None:
     cmd_show_current_folder(ctx)
 
 
+def get_new_folder_name(ctx: AppCtx) -> str | None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    new_name = input(c.mark_prompt('New name') + c.mark_hint(' [` - cancel]') + c.mark_prompt(':')).strip()
+    if new_name.startswith('`'):
+        return None
+    if len(new_name) == 0:
+        c.error('The folder name cannot be empty.')
+        return None
+    return new_name
+
+
+def rename_current_folder(ctx: AppCtx) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    cur_path = cache.get_curr_folder_path()
+    if len(cur_path) == 0:
+        c.error('Cannot rename the root folder.')
+        return
+    folder = select_folder(db.con, cur_path[-1].id)
+    if folder is None:
+        c.error('Internal error: cannot load the folder.')
+        return
+    new_name = get_new_folder_name(ctx)
+    if new_name is None:
+        cmd_show_current_folder(ctx)
+        return
+    folder.name = new_name
+    update_folder(db.con, folder)
+    cmd_show_current_folder(ctx)
+
+
+def rename_folder_by_id(ctx: AppCtx) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    folder = select_folder(db.con, int(c.input('Folder id: ').strip()))
+    if folder is None:
+        c.error('Internal error: cannot load the folder.')
+        return
+    new_name = get_new_folder_name(ctx)
+    if new_name is None:
+        return
+    folder.name = new_name
+    update_folder(db.con, folder)
+    c.info('The folder has been renamed.')
+
+
 def cmd_move_folder(ctx: AppCtx) -> None:
     c = ctx.console
     db = ctx.database
@@ -323,6 +367,8 @@ def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     add_command('Folders', 'select folder', cmd_select_folder)
     add_command('Folders', 'select folder by id', cmd_select_folder_by_id)
     add_command('Folders', 'move folder', cmd_move_folder)
+    add_command('Folders', 'rename current folder', rename_current_folder)
+    add_command('Folders', 'rename folder by id', rename_folder_by_id)
     add_command('Folders', 'delete folder by id', cmd_delete_folder_by_id)
 
     add_command('Cards', 'add card', cmd_add_card)

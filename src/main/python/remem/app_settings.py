@@ -17,6 +17,7 @@ class AppSettings:
             'Cambridge': 'https://dictionary.cambridge.org/dictionary/english/{word}'
         }
     })
+    screen_width: int = 120
 
     console_colors_info: Tuple[int, int, int] = (30, 144, 255)
     console_colors_success: Tuple[int, int, int] = (26, 138, 59)
