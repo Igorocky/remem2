@@ -142,7 +142,7 @@ def find_in_dictionary(ctx: AppCtx, lang_str: str, dict_idx: int, words: list[st
             print()
             c.input('press Enter')
         else:
-            dict_url = list(dicts_for_lang.values())[dict_idx]
+            dict_url = dicts_for_lang[dict_idx]
             for word in words:
                 webbrowser.open_new_tab(dict_url.replace('{word}', word))
 
