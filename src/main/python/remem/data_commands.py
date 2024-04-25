@@ -9,7 +9,7 @@ from typing import Callable
 
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
-from remem.common import Try, try_
+from remem.common import Try, try_, select_folders
 from remem.console import select_single_option
 from remem.dao import insert_folder, select_folder, delete_folder, insert_card, select_all_queries, insert_query, \
     update_query, delete_query, select_card, update_card, update_folder
@@ -58,6 +58,20 @@ def cmd_select_folder_by_id(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
     inp = c.input("id of the folder to select: ").strip()
     cache.set_curr_folder(None if inp == '' else int(inp))
+    cmd_show_current_folder(ctx)
+
+
+def cmd_select_folder(ctx: AppCtx) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    selected_folder = select_folders(ctx.database.con, c.mark_prompt('Folder name: '), single=True)
+    if selected_folder is None:
+        c.error('No matching folders found')
+        cmd_show_current_folder(ctx)
+        return
+    if len(selected_folder) == 0:
+        cmd_show_current_folder(ctx)
+        return
+    cache.set_curr_folder(selected_folder[0].id)
     cmd_show_current_folder(ctx)
 
 
@@ -306,6 +320,7 @@ def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     add_command('Folders', 'make new folder', cmd_make_new_folder)
     add_command('Folders', 'show current folder', cmd_show_current_folder)
     add_command('Folders', 'list all folders', cmd_list_all_folders)
+    add_command('Folders', 'select folder', cmd_select_folder)
     add_command('Folders', 'select folder by id', cmd_select_folder_by_id)
     add_command('Folders', 'move folder', cmd_move_folder)
     add_command('Folders', 'delete folder by id', cmd_delete_folder_by_id)

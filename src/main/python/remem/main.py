@@ -46,18 +46,13 @@ def main() -> None:
             print()
             inp = c.input('> ').strip()
             cmds = commands.find_commands_by_pattern(inp)
-            if len(cmds) == 1:
+            if len(cmds) == 0:
+                c.error(f'No matches found for "{inp}"')
+            else:
+                cmds.sort(key=lambda cmd:len(cmd.name_arr))
                 print(c.mark_info('Command: ') + cmds[0].name)
                 print()
                 cmds[0].func()
-            elif len(cmds) == 0:
-                c.error(f'No matches found for "{inp}"')
-            else:
-                c.prompt(f'Multiple commands match "{inp}". Please select one:')
-                idx = select_single_option([c.name for c in cmds])
-                if idx is not None:
-                    print()
-                    cmds[idx].func()
         except Exception as ex:
             c.print_last_exception_info(ex)
 

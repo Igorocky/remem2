@@ -78,3 +78,9 @@ class TaskHistRec:
     task_id: int = -1
     mark: float = 0.0
     note: str = ''
+
+
+@dataclass
+class FolderWithPathDto:
+    id: int
+    path: str

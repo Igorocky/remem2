@@ -7,7 +7,7 @@ import remem.repeat.repeat_fill_gaps_card as repeat_fill_gaps_card
 import remem.repeat.repeat_translate_card as repeat_translate_card
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
-from remem.common import first_defined
+from remem.common import first_defined, select_folders
 from remem.console import select_multiple_options, select_single_option, clear_screen
 from remem.constants import TaskTypes
 from remem.dao import insert_task_hist, select_card
@@ -15,34 +15,6 @@ from remem.data_commands import edit_card_by_id
 from remem.dtos import Task, TaskHistRec
 from remem.repeat import TaskContinuation
 from remem.repeat.strategy.buckets import repeat_tasks_with_buckets
-
-
-@dataclass
-class FolderWithPathDto:
-    id: int
-    path: str
-
-
-def select_folders(ctx: AppCtx) -> list[FolderWithPathDto] | None:
-    c = ctx.console
-    db = ctx.database
-    all_folders = [FolderWithPathDto(**r) for r in db.con.execute("""
-        with recursive folders(id, path) as (
-            select id, '/'||name from FOLDER where parent_id is null
-            union all
-            select ch.id, pr.path||'/'||ch.name
-            from folders pr inner join FOLDER ch on pr.id = ch.parent_id
-            order by 1 desc
-        )
-        select id, path from folders
-        order by path
-    """)]
-    folder_name_pat = c.input('Folder name: ').lower().strip()
-    matching_folders = [f for f in all_folders if folder_name_pat in f.path.lower()]
-    if len(matching_folders) == 0:
-        return None
-    idxs = select_multiple_options([f.path for f in matching_folders])
-    return [matching_folders[i] for i in idxs]
 
 
 @dataclass
@@ -225,7 +197,7 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], bool]) -> Tas
 def cmd_repeat_tasks(ctx: AppCtx) -> None:
     c = ctx.console
 
-    selected_folders = select_folders(ctx)
+    selected_folders = select_folders(ctx.database.con, c.mark_prompt('Folder name: '))
     if selected_folders is None:
         c.error('No folders found')
         return

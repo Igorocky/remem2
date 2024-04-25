@@ -7,6 +7,9 @@ from sqlite3 import Connection
 from typing import TypeVar, Callable, Generic, Tuple, Any
 from unittest import TestCase
 
+from remem.console import select_multiple_options, select_single_option
+from remem.dtos import FolderWithPathDto
+
 T = TypeVar('T')
 K = TypeVar('K')
 V = TypeVar('V')
@@ -195,3 +198,29 @@ def enable_foreign_keys(con: Connection) -> None:
     con.execute('pragma foreign_keys = ON')
     if values(con.execute('pragma foreign_keys').fetchone())[0] != 1:
         raise Exception('Could not set foreign_keys = ON.')
+
+
+def select_folders(con: Connection, prompt: str, single: bool = False) -> list[FolderWithPathDto] | None:
+    all_folders = [FolderWithPathDto(**r) for r in con.execute("""
+        with recursive folders(id, path) as (
+            select id, '/'||name from FOLDER where parent_id is null
+            union all
+            select ch.id, pr.path||'/'||ch.name
+            from folders pr inner join FOLDER ch on pr.id = ch.parent_id
+            order by 1 desc
+        )
+        select id, path from folders
+        order by path
+    """)]
+    folder_name_pat = input(prompt).lower().strip()
+    matching_folders = [f for f in all_folders if folder_name_pat in f.path.lower()]
+    if len(matching_folders) == 0:
+        return None
+    if single:
+        idx = select_single_option([f.path for f in matching_folders])
+        if idx is None:
+            return []
+        idxs = [idx]
+    else:
+        idxs = select_multiple_options([f.path for f in matching_folders])
+    return [matching_folders[i] for i in idxs]
