@@ -161,7 +161,7 @@ def process_user_input(
 
     def process_command(cmd: str) -> TranslateTaskState:
         if cmd.startswith('d') and state.first_user_translation is not None:
-            dict_idx = int(cmd[:1])-1 if len(cmd) > 1 else 0
+            dict_idx = int(cmd[1:])-1 if len(cmd) > 1 else 0
             return update_state(state, find_in_dictionary=(state.dst.lang_str, dict_idx, [state.dst.text]))
         match cmd:
             case 'e':

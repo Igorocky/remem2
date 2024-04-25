@@ -14,7 +14,8 @@ class AppSettings:
     })
     dictionaries: dict[str, dict[str, str]] = field(default_factory=lambda: {
         'ENG': {
-            'Cambridge': 'https://dictionary.cambridge.org/dictionary/english/{word}'
+            'Oxford': 'https://www.oxfordlearnersdictionaries.com/definition/american_english/{word}',
+            'Cambridge': 'https://dictionary.cambridge.org/dictionary/english/{word}',
         }
     })
     screen_width: int = 120

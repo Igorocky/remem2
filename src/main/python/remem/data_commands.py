@@ -77,7 +77,7 @@ def cmd_select_folder(ctx: AppCtx) -> None:
 
 def get_new_folder_name(ctx: AppCtx) -> str | None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
-    new_name = input(c.mark_prompt('New name') + c.mark_hint(' [` - cancel]') + c.mark_prompt(':')).strip()
+    new_name = input(c.mark_prompt('New name') + c.mark_hint(' [` - cancel]') + c.mark_prompt(': ')).strip()
     if new_name.startswith('`'):
         return None
     if len(new_name) == 0:

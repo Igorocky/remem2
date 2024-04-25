@@ -1,3 +1,4 @@
+import random
 import re
 import time
 from typing import Callable, Any
@@ -53,6 +54,7 @@ def select_tasks_to_repeat_from_buckets(buckets: list[list[TaskWithHist]], bucke
         min_delay_sec = bucket_delays[bucket_idx]
         bucket = [t for t in bucket if curr_time_sec - t.last_repeated >= min_delay_sec]
         if len(bucket) > 0:
+            random.shuffle(bucket)
             bucket.sort(key=lambda t: t.last_repeated)
             if bucket_idx == 0:
                 bucket.reverse()

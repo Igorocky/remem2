@@ -196,7 +196,7 @@ def process_user_input(
         nonlocal state
 
         if cmd.startswith('d') and any(v is not None for v in state.first_user_inputs):
-            dict_idx = int(cmd[:1]) - 1 if len(cmd) > 1 else 0
+            dict_idx = int(cmd[1:]) - 1 if len(cmd) > 1 else 0
             ans_to_search = [state.answers[i] for i, inp in enumerate(state.first_user_inputs) if inp is not None]
             return update_state(state, find_in_dictionary=(state.lang_str, dict_idx, ans_to_search))
         match cmd:
