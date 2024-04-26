@@ -47,7 +47,7 @@ def cmd_list_all_folders(ctx: AppCtx) -> None:
             union all
             select pr.level+1, ch.id, ch.name, ch.parent_id
             from folders pr inner join FOLDER ch on pr.id = ch.parent_id
-            order by 1 desc
+            order by 1 desc, name
         )
         select level, id, name from folders
     """):
@@ -102,6 +102,7 @@ def rename_current_folder(ctx: AppCtx) -> None:
         return
     folder.name = new_name
     update_folder(db.con, folder)
+    ctx.cache.refresh_curr_folder()
     cmd_show_current_folder(ctx)
 
 
@@ -116,6 +117,7 @@ def rename_folder_by_id(ctx: AppCtx) -> None:
         return
     folder.name = new_name
     update_folder(db.con, folder)
+    ctx.cache.refresh_curr_folder()
     c.info('The folder has been renamed.')
 
 
