@@ -63,7 +63,7 @@ def cmd_select_folder_by_id(ctx: AppCtx) -> None:
 
 def cmd_select_folder(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
-    selected_folder = select_folders(ctx.database.con, c.mark_prompt('Folder name: '), single=True)
+    selected_folder = select_folders(c, ctx.database.con, c.mark_prompt('Folder name: '), single=True)
     if selected_folder is None:
         c.error('No matching folders found')
         cmd_show_current_folder(ctx)
@@ -271,7 +271,7 @@ def cmd_edit_query(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to edit:'))
-    idx = select_single_option([q.name for q in all_queries])
+    idx = select_single_option(c, [q.name for q in all_queries])
     if idx is None:
         return
     query_to_edit = all_queries[idx]
@@ -297,7 +297,7 @@ def cmd_delete_query(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to delete:'))
-    idx = select_single_option([q.name for q in all_queries])
+    idx = select_single_option(c, [q.name for q in all_queries])
     if idx is None:
         return
     query_to_delete = all_queries[idx]
@@ -310,7 +310,7 @@ def cmd_run_query(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
     all_queries = select_all_queries(db.con)
     print(c.mark_prompt('Select a query to run:'))
-    idx = select_single_option([q.name for q in all_queries])
+    idx = select_single_option(c, [q.name for q in all_queries])
     if idx is None:
         return
     query = all_queries[idx]

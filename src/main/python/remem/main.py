@@ -40,11 +40,11 @@ def main() -> None:
     commands.add_command('', 'exit remem', lambda: exit(0))
     add_repeat_commands(ctx, commands)
     add_data_commands(ctx, commands)
-    delim = '_' * ctx.settings.screen_width
+    delim = '─' * ctx.settings.screen_width
 
     while True:
         try:
-            c.hint(delim)
+            print(delim)
             inp = c.input('> ').strip()
             cmds = commands.find_commands_by_pattern(inp)
             if len(cmds) == 0:

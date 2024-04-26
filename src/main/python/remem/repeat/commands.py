@@ -197,7 +197,7 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], bool]) -> Tas
 def cmd_repeat_tasks(ctx: AppCtx) -> None:
     c = ctx.console
 
-    selected_folders = select_folders(ctx.database.con, c.mark_prompt('Folder name: '))
+    selected_folders = select_folders(c, ctx.database.con, c.mark_prompt('Folder name: '))
     if selected_folders is None:
         c.error('No folders found')
         return
@@ -215,7 +215,7 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
         return
     available_task_types.sort(key=lambda t: t.descr)
     c.prompt('Select task types:')
-    task_type_idxs = select_multiple_options([t.descr for t in available_task_types])
+    task_type_idxs = select_multiple_options(c, [t.descr for t in available_task_types])
     if len(task_type_idxs) == 0:
         return
     selected_task_types = [available_task_types[i] for i in task_type_idxs]
@@ -230,7 +230,7 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
 
     available_strategies = ['circle', *[f'buckets: {name} {value}' for name, value in ctx.settings.buckets.items()]]
     c.prompt('Select strategy:')
-    strategy_idx = select_single_option(available_strategies)
+    strategy_idx = select_single_option(c, available_strategies)
     if strategy_idx is None:
         return
     if strategy_idx == 0:

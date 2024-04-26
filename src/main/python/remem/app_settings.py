@@ -10,19 +10,19 @@ class AppSettings:
     database_backup_dir: str | None = None
     buckets: dict[str, str] = field(default_factory=lambda: {
         'short': '2m 5m 15m 30m',
-        'long': '1d 7d 30d',
+        'long': '4h 1d 7d 30d',
     })
     dictionaries: dict[str, list[str]] = field(default_factory=lambda: {
         'ENG': [
-            'https://www.oxfordlearnersdictionaries.com/definition/american_english/{word}',
             'https://dictionary.cambridge.org/dictionary/english/{word}',
+            'https://www.oxfordlearnersdictionaries.com/definition/american_english/{word}',
         ]
     })
     screen_width: int = 120
 
     console_colors_info: Tuple[int, int, int] = (30, 144, 255)
     console_colors_success: Tuple[int, int, int] = (26, 138, 59)
-    console_colors_hint: Tuple[int, int, int] = (100, 100, 100)
+    console_colors_hint: Tuple[int, int, int] = (180, 180, 180)
     console_colors_prompt: Tuple[int, int, int] = (0, 0, 255)
     console_colors_error: Tuple[int, int, int] = (255, 0, 0)
     print_stack_traces_for_exceptions: bool = True
