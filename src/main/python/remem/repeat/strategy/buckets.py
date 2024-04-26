@@ -45,6 +45,7 @@ def select_tasks_to_repeat_from_buckets(buckets: list[list[TaskWithHist]], bucke
         list)[TaskWithHist]:
     all_tasks = [t for b in buckets for t in b]
     folder_last_access = [(t.task.card.folder_id, t.last_repeated) for t in all_tasks]
+    random.shuffle(folder_last_access)
     folder_last_access.sort(key=lambda f: f[1])
     preferred_folders = [f[0] for f in folder_last_access]
     curr_time_sec = int(time.time())

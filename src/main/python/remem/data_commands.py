@@ -38,20 +38,34 @@ def cmd_show_current_folder(ctx: AppCtx) -> None:
     print('/' + '/'.join([f'{f.name}:{f.id}' for f in cache.get_curr_folder_path()]))
 
 
-def cmd_list_all_folders(ctx: AppCtx) -> None:
+def list_folders(ctx: AppCtx, show_hidden: bool) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
-    c.info('List of all folders:')
     for r in db.con.execute("""
         with recursive folders(level, id, name, parent) as (
-            select 0, id, name, parent_id from FOLDER where parent_id is null
+            select 0, id, name, parent_id 
+            from FOLDER 
+            where parent_id is null and (name not like '.%' or 1 = :show_hidden)
             union all
             select pr.level+1, ch.id, ch.name, ch.parent_id
             from folders pr inner join FOLDER ch on pr.id = ch.parent_id
+            where (ch.name not like '.%' or 1 = :show_hidden)
             order by 1 desc, name
         )
         select level, id, name from folders
-    """):
+    """, {'show_hidden': 1 if show_hidden else 0}):
         print(f'{"    " * r['level']}{r['name']}:{r['id']}')
+
+
+def cmd_list_folders(ctx: AppCtx) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    c.info('List of folders:')
+    list_folders(ctx, show_hidden=False)
+
+
+def cmd_list_all_folders(ctx: AppCtx) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    c.info('List of all folders:')
+    list_folders(ctx, show_hidden=True)
 
 
 def cmd_select_folder_by_id(ctx: AppCtx) -> None:
@@ -366,6 +380,7 @@ def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     add_command('Folders', 'make new folder', cmd_make_new_folder)
     add_command('Folders', 'show current folder', cmd_show_current_folder)
     add_command('Folders', 'list all folders', cmd_list_all_folders)
+    add_command('Folders', 'list folders', cmd_list_folders)
     add_command('Folders', 'select folder', cmd_select_folder)
     add_command('Folders', 'select folder by id', cmd_select_folder_by_id)
     add_command('Folders', 'move folder', cmd_move_folder)
