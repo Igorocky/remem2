@@ -5,7 +5,6 @@ import re
 import time
 from sqlite3 import Connection
 from typing import TypeVar, Callable, Generic, Tuple, Any
-from unittest import TestCase
 
 from remem.console import select_multiple_options, select_single_option, Console
 from remem.dtos import FolderWithPathDto
@@ -68,11 +67,13 @@ _seconds_in_day = _seconds_in_hour * _hours_in_day
 
 
 def duration_str_to_seconds(dur_str: str) -> int:
-    match_res = re.match(r'^(\d+)([mhd])$', dur_str)
+    match_res = re.match(r'^(\d+)([smhd])$', dur_str)
     if match_res:
         val = int(match_res.group(1))
         unit = match_res.group(2)
         match unit:
+            case 's':
+                return val
             case 'm':
                 return val * _seconds_in_minute
             case 'h':
@@ -174,24 +175,6 @@ def print_table_from_dicts(data: list[dict[str, Any]]) -> str:
         header=header,
         data=[[d[h] if h in d else None for h in header] for d in data]
     )
-
-
-class PrintTableFromDictsTest(TestCase):
-    def test_print_table_from_dicts(self) -> None:
-        self.assertEqual(
-            """------------------
-    id name desc  
-------------------
-     1 AA   10    
-  None BB   ..    
-300000 CC   300000
-------------------""",
-            print_table_from_dicts([
-                {'id': 1, 'name': 'AA', 'desc': 10},
-                {'id': None, 'name': 'BB', 'desc': '..'},
-                {'id': 300000, 'name': 'CC', 'desc': 300000},
-            ])
-        )
 
 
 def enable_foreign_keys(con: Connection) -> None:

@@ -7,7 +7,8 @@ from remem.repeat.strategy.buckets import get_bucket_number
 
 from remem.console import parse_idxs
 
-from remem.common import duration_str_to_seconds, seconds_to_duration_str, extract_gaps_from_text
+from remem.common import duration_str_to_seconds, seconds_to_duration_str, extract_gaps_from_text, \
+    print_table_from_dicts
 
 from unittest import TestCase
 
@@ -16,6 +17,7 @@ from remem.commands import make_cmd_pat, arr_str_matches_pat
 
 class DurationStrToSecondsTest(TestCase):
     def test_duration_str_to_seconds(self) -> None:
+        self.assertEqual(duration_str_to_seconds('29s'), 29)
         self.assertEqual(duration_str_to_seconds('1m'), 60)
         self.assertEqual(duration_str_to_seconds('16m'), 16 * 60)
         self.assertEqual(duration_str_to_seconds('1h'), 60 * 60)
@@ -100,3 +102,21 @@ class GetBucketNumberTest(TestCase):
         self.assertEqual(get_bucket_number(make_hist([0.0, 1.0, 1.0, 1.0]), max_num=10), 0)
         self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0, 1.0]), max_num=10), 4)
         self.assertEqual(get_bucket_number(make_hist([1.0, 1.0, 1.0, 1.0]), max_num=3), 3)
+
+
+class PrintTableFromDictsTest(TestCase):
+    def test_print_table_from_dicts(self) -> None:
+        self.assertEqual(
+            """------------------
+    id name desc  
+------------------
+     1 AA   10    
+  None BB   ..    
+300000 CC   300000
+------------------""",
+            print_table_from_dicts([
+                {'id': 1, 'name': 'AA', 'desc': 10},
+                {'id': None, 'name': 'BB', 'desc': '..'},
+                {'id': 300000, 'name': 'CC', 'desc': 300000},
+            ])
+        )

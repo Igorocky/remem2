@@ -14,11 +14,13 @@ class AppSettings:
     })
     dictionaries: dict[str, list[str]] = field(default_factory=lambda: {
         'ENG': [
+            'https://showmeword.com/definition/english_word/{word}',
             'https://dictionary.cambridge.org/dictionary/english/{word}',
             'https://www.oxfordlearnersdictionaries.com/definition/american_english/{word}',
         ]
     })
     screen_width: int = 120
+    break_reminder_interval: str = '15m'
 
     console_colors_info: Tuple[int, int, int] = (30, 144, 255)
     console_colors_success: Tuple[int, int, int] = (26, 138, 59)

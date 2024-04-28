@@ -109,6 +109,17 @@ def repeat_tasks_with_buckets(
         buckets_descr: str,
         repeat_task: Callable[[AppCtx, Task, Callable[[], bool]], TaskContinuation]
 ) -> None:
+    break_reminder_interval_sec = duration_str_to_seconds(ctx.settings.break_reminder_interval)
+    next_break_reminder: int = int(time.time()) + break_reminder_interval_sec
+
+    def remind_about_break_if_needed() -> None:
+        nonlocal next_break_reminder
+        if next_break_reminder < int(time.time()):
+            clear_screen()
+            ctx.console.input('TAKE A BREAK')
+            clear_screen()
+            next_break_reminder = int(time.time()) + break_reminder_interval_sec
+
     bucket_delays = [duration_str_to_seconds(m.group(1)) for m in re.finditer(r'(\S+)', buckets_descr)]
     num_of_buckets = len(bucket_delays)
 
@@ -125,6 +136,7 @@ def repeat_tasks_with_buckets(
     tasks = get_next_tasks_to_repeat()
     act = TaskContinuation.NEXT_TASK
     while act != TaskContinuation.EXIT:
+        remind_about_break_if_needed()
         if len(tasks) == 0:
             tasks = get_next_tasks_to_repeat()
             if len(tasks) == 0:
