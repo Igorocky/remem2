@@ -1,3 +1,11 @@
+- make it possible to add new languages and edit existing ones
+- make bucket counts configurable
+- implement moving cards to a folder (possibly in the ui)
+- implement showing lists of cards:
+    * all in a folder
+    * last added
+    * last repeated
+    * containing text
 - add new task type: fill gaps reversed
 - implement stub cards and plugins
 
