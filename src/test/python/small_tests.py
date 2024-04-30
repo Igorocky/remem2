@@ -3,7 +3,7 @@ import sys
 sys.path.append('../../main/python')
 
 from remem.dtos import TaskHistRec
-from remem.repeat.strategy.buckets import get_bucket_number
+from remem.repeat.strategy.buckets import get_bucket_number, parse_buckets_description
 
 from remem.console import parse_idxs
 
@@ -119,4 +119,20 @@ class PrintTableFromDictsTest(TestCase):
                 {'id': None, 'name': 'BB', 'desc': '..'},
                 {'id': 300000, 'name': 'CC', 'desc': 300000},
             ])
+        )
+
+
+class ParseBucketsDescriptionTest(TestCase):
+    def test_parse_buckets_description(self) -> None:
+        self.assertEqual(
+            ([120, 300, 900, 1800], [4, 3, 2, 1]),
+            parse_buckets_description('2m 5m 15m 30m')
+        )
+        self.assertEqual(
+            ([120, 300, 900, 1800], [3, 1, 1, 1]),
+            parse_buckets_description('2m,3 5m,1 15m,1 30m,1')
+        )
+        self.assertEqual(
+            ([120, 300, 900, 1800], [10, 3, 2, 4]),
+            parse_buckets_description('2m,10 5m 15m 30m,4')
         )

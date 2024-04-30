@@ -1,6 +1,5 @@
 - make it possible to add new languages and edit existing ones
-- make bucket counts configurable
-- implement moving cards to a folder (possibly in the ui)
+- implement moving cards to a folder
 - implement showing lists of cards:
     * all in a folder
     * last added
@@ -10,6 +9,7 @@
 - implement stub cards and plugins
 
 Done:
+- make bucket counts configurable
 - fix the bug when history is not saved for a task
 - fix a bug: it is not possible to quit the parameters view when there are no active cards
 - print full name of the selected command

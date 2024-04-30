@@ -1,7 +1,7 @@
 import random
 import re
 import time
-from typing import Callable, Any
+from typing import Callable, Any, Tuple
 
 from remem.app_context import AppCtx
 from remem.common import duration_str_to_seconds, seconds_to_duration_str, print_table_from_dicts
@@ -41,7 +41,11 @@ def load_buckets(ctx: AppCtx, task_ids: list[int], num_of_buckets: int) -> list[
     return buckets
 
 
-def select_tasks_to_repeat_from_buckets(buckets: list[list[TaskWithHist]], bucket_delays: list[int]) -> (
+def select_tasks_to_repeat_from_buckets(
+        buckets: list[list[TaskWithHist]],
+        bucket_delays: list[int],
+        bucket_counts: list[int],
+) -> (
         list)[TaskWithHist]:
     all_tasks = [t for b in buckets for t in b]
     folder_last_access = [(t.task.card.folder_id, t.last_repeated) for t in all_tasks]
@@ -61,18 +65,25 @@ def select_tasks_to_repeat_from_buckets(buckets: list[list[TaskWithHist]], bucke
                 bucket.reverse()
             res = res + select_random_tasks_from_beginning(
                 sorted_tasks=bucket,
-                max_num_of_tasks=num_of_buckets - bucket_idx,
+                max_num_of_tasks=bucket_counts[bucket_idx],
                 preferred_folders=preferred_folders
             )
     res.sort(key=lambda t: t.last_repeated)
     return res
 
 
-def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> bool:
+def print_stats(
+        ctx: AppCtx,
+        task_ids: list[int],
+        bucket_delays: list[int],
+        bucket_sel_counts: list[int],
+) -> bool:
     c = ctx.console
     buckets = load_buckets(ctx, task_ids, num_of_buckets=len(bucket_delays))
     curr_time_sec = int(time.time())
     print(f"{c.mark_info('Bucket delays:')} {' '.join([seconds_to_duration_str(d) for d in bucket_delays])}")
+    print()
+    print(f"{c.mark_info('Bucket selection counts:')} {' '.join([str(c) for c in bucket_sel_counts])}")
     print()
     print(f"{c.mark_info('Total number of tasks:')} {len(task_ids)}")
     print()
@@ -103,6 +114,24 @@ def print_stats(ctx: AppCtx, task_ids: list[int], bucket_delays: list[int]) -> b
     return input(c.mark_prompt('Press Enter') + c.mark_hint(' (`e - exit)')).strip() != '`e'
 
 
+def parse_buckets_description(buckets_descr: str) -> Tuple[list[int], list[int]]:
+    delays: list[int] = []
+    counts: list[int] = []
+    for m in re.finditer(r'(\S+)', buckets_descr):
+        parts = m.group(1).split(',')
+        delays.append(duration_str_to_seconds(parts[0]))
+        if len(parts) > 1:
+            counts.append(int(parts[1]))
+        else:
+            counts.append(-1)
+    if len(delays) == 0:
+        raise Exception(f'buckets_descr must be non-empty, got "{buckets_descr}"')
+    for i in range(len(counts)):
+        if counts[i] <= 0:
+            counts[i] = len(counts) - i
+    return delays, counts
+
+
 def repeat_tasks_with_buckets(
         ctx: AppCtx,
         task_ids: list[int],
@@ -120,17 +149,18 @@ def repeat_tasks_with_buckets(
             clear_screen()
             next_break_reminder = int(time.time()) + break_reminder_interval_sec
 
-    bucket_delays = [duration_str_to_seconds(m.group(1)) for m in re.finditer(r'(\S+)', buckets_descr)]
+    bucket_delays, bucket_counts = parse_buckets_description(buckets_descr)
     num_of_buckets = len(bucket_delays)
 
     clear_screen()
-    if not print_stats(ctx, task_ids, bucket_delays):
+    if not print_stats(ctx, task_ids, bucket_delays, bucket_counts):
         return
 
     def get_next_tasks_to_repeat() -> list[TaskWithHist]:
         return select_tasks_to_repeat_from_buckets(
-            load_buckets(ctx, task_ids, num_of_buckets),
-            bucket_delays
+            buckets=load_buckets(ctx, task_ids, num_of_buckets),
+            bucket_delays=bucket_delays,
+            bucket_counts=bucket_counts,
         )
 
     tasks = get_next_tasks_to_repeat()
@@ -141,11 +171,11 @@ def repeat_tasks_with_buckets(
             tasks = get_next_tasks_to_repeat()
             if len(tasks) == 0:
                 clear_screen()
-                if not print_stats(ctx, task_ids, bucket_delays):
+                if not print_stats(ctx, task_ids, bucket_delays, bucket_counts):
                     return
                 continue
         act = repeat_task(
             ctx,
             Task(**{k: v for k, v in tasks.pop(0).task.__dict__.items() if k != 'card'}),
-            lambda: print_stats(ctx, task_ids, bucket_delays)
+            lambda: print_stats(ctx, task_ids, bucket_delays, bucket_counts)
         )
