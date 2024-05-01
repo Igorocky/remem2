@@ -53,7 +53,6 @@ def select_tasks_to_repeat_from_buckets(
     folder_last_access.sort(key=lambda f: f[1])
     preferred_folders = [f[0] for f in folder_last_access]
     curr_time_sec = int(time.time())
-    num_of_buckets = len(buckets)
     res: list[TaskWithHist] = []
     for bucket_idx, bucket in enumerate(buckets):
         min_delay_sec = bucket_delays[bucket_idx]
@@ -68,7 +67,7 @@ def select_tasks_to_repeat_from_buckets(
                 max_num_of_tasks=bucket_counts[bucket_idx],
                 preferred_folders=preferred_folders
             )
-    res.sort(key=lambda t: t.last_repeated)
+    random.shuffle(res)
     return res
 
 
