@@ -67,7 +67,7 @@ def select_tasks_to_repeat_from_buckets(
                 max_num_of_tasks=bucket_counts[bucket_idx],
                 preferred_folders=preferred_folders
             )
-    random.shuffle(res)
+    res.sort(key=lambda t: t.last_repeated)
     return res
 
 
