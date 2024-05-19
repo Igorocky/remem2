@@ -14,6 +14,7 @@ from remem.console import select_single_option
 from remem.dao import insert_folder, select_folder, delete_folder, insert_card, select_all_queries, insert_query, \
     update_query, delete_query, select_card, update_card, update_folder
 from remem.dtos import CardTranslate, AnyCard, Query, Folder, CardFillGaps
+from remem.search import cmd_search_cards
 from remem.ui import render_add_card_view, render_card_translate, render_query, open_dialog, render_card_fill
 
 windll.shcore.SetProcessDpiAwareness(1)
@@ -77,7 +78,7 @@ def cmd_select_folder_by_id(ctx: AppCtx) -> None:
 
 def cmd_select_folder(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
-    selected_folder = select_folders(c, ctx.database.con, c.mark_prompt('Folder name: '), single=True)
+    selected_folder = select_folders(c, ctx.database.con, 'Folder name: ', single=True)
     if selected_folder is None:
         c.error('No matching folders found')
         cmd_show_current_folder(ctx)
@@ -390,6 +391,7 @@ def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
 
     add_command('Cards', 'add card', cmd_add_card)
     add_command('Cards', 'edit card', cmd_edit_card_by_id)
+    add_command('Cards', 'find cards', cmd_search_cards)
 
     add_command('Queries', 'add query', cmd_add_query)
     add_command('Queries', 'list all queries', cmd_list_all_queries)

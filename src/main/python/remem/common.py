@@ -196,7 +196,7 @@ def select_folders(c: Console, con: Connection, prompt: str, single: bool = Fals
         select id, path from folders
         order by path
     """)]
-    folder_name_pat = input(prompt).lower().strip()
+    folder_name_pat = c.input(prompt).lower().strip()
     matching_folders = [f for f in all_folders if folder_name_pat in f.path.lower()]
     if len(matching_folders) == 0:
         return None
