@@ -197,7 +197,7 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], bool]) -> Tas
 def cmd_repeat_tasks(ctx: AppCtx) -> None:
     c = ctx.console
 
-    selected_folders = select_folders(c, ctx.database.con, 'Folder name: ')
+    selected_folders = select_folders(c, ctx.cache.get_all_folders(), 'Folder name: ')
     if selected_folders is None:
         c.error('No folders found')
         return

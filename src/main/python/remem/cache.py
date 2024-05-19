@@ -2,7 +2,7 @@ from sqlite3 import Connection
 
 from remem.common import fit_to_range
 from remem.database import Database
-from remem.dtos import Folder
+from remem.dtos import Folder, FolderWithPathDto
 
 
 def select_folder_path(con: Connection, folder_id: int | None) -> list[Folder]:
@@ -51,8 +51,20 @@ class Cache:
             self.task_types_si[task_type_code] = task_type_id
             self.task_types_is[task_type_id] = task_type_code
 
-        curr_folder_id = self._get_int(Cache._sn_curr_folder)
-        self._cur_folder_path = [] if curr_folder_id is None else select_folder_path(self._db.con, curr_folder_id)
+        self.refresh_folders()
+
+    def _load_all_folders(self) -> list[FolderWithPathDto]:
+        return [FolderWithPathDto(**r) for r in self._db.con.execute("""
+            with recursive folders(id, path, is_hidden) as (
+                select id, '/'||name as path, name like '.%' as is_hidden from FOLDER where parent_id is null
+                union all
+                select ch.id, pr.path||'/'||ch.name as path, pr.is_hidden or ch.name like '.%' as is_hidden
+                from folders pr inner join FOLDER ch on pr.id = ch.parent_id
+                where ch.name not like '.%'
+            )
+            select id, path, is_hidden from folders
+            order by path
+        """)]
 
     def _read_value_from_db(self, key: str) -> str | None:
         for r in self._db.con.execute('select value from CACHE where key = ?', [key]):
@@ -90,9 +102,10 @@ class Cache:
         self._set_int(Cache._sn_curr_folder, folder_id)
         self._cur_folder_path = [] if folder_id is None else select_folder_path(self._db.con, folder_id)
 
-    def refresh_curr_folder(self) -> None:
+    def refresh_folders(self) -> None:
         cur_folder_id = self._get_int(Cache._sn_curr_folder)
         self.set_curr_folder(cur_folder_id)
+        self._all_folders = self._load_all_folders()
 
     _sn_card_tran_lang1_id = 'card_tran_lang1_id'
 
@@ -138,3 +151,6 @@ class Cache:
 
     def set_card_fill_lang_id(self, lang_id: int) -> None:
         self._set(Cache._sn_card_fill_lang_id, str(lang_id))
+
+    def get_all_folders(self) -> list[FolderWithPathDto]:
+        return self._all_folders

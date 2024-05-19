@@ -183,19 +183,13 @@ def enable_foreign_keys(con: Connection) -> None:
         raise Exception('Could not set foreign_keys = ON.')
 
 
-def select_folders(c: Console, con: Connection, prompt: str, single: bool = False) -> list[FolderWithPathDto] | None:
-    all_folders = [FolderWithPathDto(**r) for r in con.execute("""
-        with recursive folders(id, path) as (
-            select id, '/'||name from FOLDER where parent_id is null and name not like '.%'
-            union all
-            select ch.id, pr.path||'/'||ch.name
-            from folders pr inner join FOLDER ch on pr.id = ch.parent_id
-            where ch.name not like '.%'
-            order by 1 desc
-        )
-        select id, path from folders
-        order by path
-    """)]
+def select_folders(
+        c: Console,
+        all_folders: list[FolderWithPathDto],
+        prompt: str,
+        single: bool = False
+) -> list[FolderWithPathDto] | None:
+    all_folders = [f for f in all_folders if not f.is_hidden]
     folder_name_pat = c.input(prompt).lower().strip()
     matching_folders = [f for f in all_folders if folder_name_pat in f.path.lower()]
     if len(matching_folders) == 0:

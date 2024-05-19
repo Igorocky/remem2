@@ -78,7 +78,7 @@ def cmd_select_folder_by_id(ctx: AppCtx) -> None:
 
 def cmd_select_folder(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
-    selected_folder = select_folders(c, ctx.database.con, 'Folder name: ', single=True)
+    selected_folder = select_folders(c, cache.get_all_folders(), 'Folder name: ', single=True)
     if selected_folder is None:
         c.error('No matching folders found')
         cmd_show_current_folder(ctx)
@@ -117,7 +117,7 @@ def rename_current_folder(ctx: AppCtx) -> None:
         return
     folder.name = new_name
     update_folder(db.con, folder)
-    ctx.cache.refresh_curr_folder()
+    ctx.cache.refresh_folders()
     cmd_show_current_folder(ctx)
 
 
@@ -132,7 +132,7 @@ def rename_folder_by_id(ctx: AppCtx) -> None:
         return
     folder.name = new_name
     update_folder(db.con, folder)
-    ctx.cache.refresh_curr_folder()
+    ctx.cache.refresh_folders()
     c.info('The folder has been renamed.')
 
 
@@ -158,7 +158,7 @@ def cmd_move_folder(ctx: AppCtx) -> None:
             return
         folder_to_move.parent_id = folder_to_move_to.id
     update_folder(db.con, folder_to_move)
-    ctx.cache.refresh_curr_folder()
+    ctx.cache.refresh_folders()
     c.info(f'The folder "{folder_to_move.name}" was moved.')
 
 

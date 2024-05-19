@@ -84,3 +84,4 @@ class TaskHistRec:
 class FolderWithPathDto:
     id: int
     path: str
+    is_hidden: bool
