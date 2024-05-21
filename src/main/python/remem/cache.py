@@ -27,13 +27,7 @@ class Cache:
         self._db = db
         self._cache: dict[str, str | None] = {}
 
-        self.lang_si: dict[str, int] = {}
-        self.lang_is: dict[int, str] = {}
-        for r in db.con.execute("select id, name from LANGUAGE"):
-            lang_id = r['id']
-            lang_name = r['name']
-            self.lang_si[lang_name] = lang_id
-            self.lang_is[lang_id] = lang_name
+        self._load_all_languages()
 
         self.card_types_si: dict[str, int] = {}
         self.card_types_is: dict[int, str] = {}
@@ -52,6 +46,15 @@ class Cache:
             self.task_types_is[task_type_id] = task_type_code
 
         self.refresh_folders()
+
+    def _load_all_languages(self) -> None:
+        self.lang_si: dict[str, int] = {}
+        self.lang_is: dict[int, str] = {}
+        for r in self._db.con.execute("select id, name from LANGUAGE"):
+            lang_id = r['id']
+            lang_name = r['name']
+            self.lang_si[lang_name] = lang_id
+            self.lang_is[lang_id] = lang_name
 
     def _load_all_folders(self) -> list[FolderWithPathDto]:
         return [FolderWithPathDto(**r) for r in self._db.con.execute("""
@@ -109,6 +112,9 @@ class Cache:
         self._id_to_folder: dict[int, FolderWithPathDto] = {}
         for folder in self._all_folders:
             self._id_to_folder[folder.id] = folder
+
+    def refresh_languages(self) -> None:
+        self._load_all_languages()
 
     _sn_card_tran_lang1_id = 'card_tran_lang1_id'
 

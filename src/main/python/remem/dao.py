@@ -5,7 +5,7 @@ from remem.cache import Cache
 from remem.common import values
 from remem.constants import CardTypes
 from remem.dtos import Folder, CardTranslate, Query, AnyCard, BaseCard, CardFillGaps, Task, TaskHistRec, \
-    TaskWithBaseCard
+    TaskWithBaseCard, Language
 
 
 def get_last_id(con: Connection) -> int:
@@ -274,3 +274,23 @@ def select_task_hist(
                 result[task_id] = []
             result[task_id].append(TaskHistRec(**r))
     return result
+
+
+def insert_language(con: Connection, lang: Language) -> int:
+    if len(lang.ext_id) == 0:
+        lang.ext_id = str(uuid4())
+    con.execute("""insert into LANGUAGE(ext_id, name) values (:ext_id, :name)""", lang.__dict__)
+    return get_last_id(con)
+
+
+def select_language(con: Connection, lang_id: int) -> Language | None:
+    row = con.execute("""select * from LANGUAGE where id = ?""", [lang_id]).fetchone()
+    return None if row is None else Language(**row)
+
+
+def update_language(con: Connection, lang: Language) -> None:
+    con.execute(""" update LANGUAGE set name = :name, ext_id = :ext_id where id = :id """, lang.__dict__)
+
+
+def delete_language(con: Connection, lang_id: int) -> None:
+    con.execute("""delete from LANGUAGE where id = ?""", [lang_id])

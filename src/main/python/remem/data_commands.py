@@ -12,8 +12,8 @@ from remem.commands import CollectionOfCommands
 from remem.common import Try, try_, select_folders
 from remem.console import select_single_option
 from remem.dao import insert_folder, select_folder, delete_folder, insert_card, select_all_queries, insert_query, \
-    update_query, delete_query, select_card, update_card, update_folder
-from remem.dtos import CardTranslate, AnyCard, Query, Folder, CardFillGaps
+    update_query, delete_query, select_card, update_card, update_folder, insert_language
+from remem.dtos import CardTranslate, AnyCard, Query, Folder, CardFillGaps, Language
 from remem.search import cmd_search_cards
 from remem.ui import render_add_card_view, render_card_translate, render_query, open_dialog, render_card_fill
 
@@ -374,6 +374,17 @@ def cmd_backup_database(ctx: AppCtx) -> None:
     print(c.mark_info('A backup saved to ') + backup_db_file_path)
 
 
+def cmd_make_new_language(ctx: AppCtx) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    name = c.input("New language name: ").strip()
+    if name == '':
+        c.error('Language name must not be empty')
+        return
+    insert_language(db.con, Language(name=name))
+    cache.refresh_languages()
+    print(c.mark_info("New language created: ") + name)
+
+
 def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     def add_command(cat: str, name: str, cmd: Callable[[AppCtx], None]) -> None:
         commands.add_command(cat, name, lambda: cmd(ctx))
@@ -400,3 +411,5 @@ def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     add_command('Queries', 'delete query', cmd_delete_query)
 
     add_command('Database', 'backup database', cmd_backup_database)
+
+    add_command('Language', 'make new language', cmd_make_new_language)
