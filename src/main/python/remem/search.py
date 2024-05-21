@@ -149,7 +149,7 @@ def cmd_search_cards(ctx: AppCtx) -> None:
         render_state(c, state)
         user_input = c.input(prompt).strip()
     clear_screen()
-    print(f'Search results for text={state.text} dir={state.dir.path if state.dir is not None else "None"}')
+    print(f'Search results for text={state.text} folder={state.dir.path if state.dir is not None else "None"}')
     query, params = prepare_query_and_params(state)
     cards = [load_card(r) for r in db.con.execute(query, params)]
     for card in cards:
