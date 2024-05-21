@@ -119,6 +119,23 @@ def prepare_query_and_params(state: SearchState) -> Tuple[str, dict[str, Any]]:
     return query, params
 
 
+def card_to_str(card: AnyCard, cache: Cache) -> str:
+    if isinstance(card, CardTranslate):
+        text1_ro = '(ro)' if card.read_only1 else ''
+        text2_ro = '(ro)' if card.read_only2 else ''
+        return (f"Translate:"
+                f" {cache.lang_is[card.lang1_id]}{text1_ro}: {card.text1}"
+                f" {cache.lang_is[card.lang2_id]}{text2_ro}: {card.text2}"
+                f" notes: {card.notes} ")
+    elif isinstance(card, CardFillGaps):
+        return (f"Fill gaps [{cache.lang_is[card.lang_id]}]: "
+                f" descr: {card.descr}"
+                f" text: {card.text}"
+                f" notes: {card.notes}")
+    else:
+        raise Exception(f'Unexpected type of card: {card}')
+
+
 def cmd_search_cards(ctx: AppCtx) -> None:
     c, cache, db = ctx.console, ctx.cache, ctx.database
     state = make_initial_state(c, cache)
@@ -136,4 +153,4 @@ def cmd_search_cards(ctx: AppCtx) -> None:
     query, params = prepare_query_and_params(state)
     cards = [load_card(r) for r in db.con.execute(query, params)]
     for card in cards:
-        print(f'{card=}')
+        print(f'{c.mark_info(str(card.id))} {card_to_str(card, cache)}')
