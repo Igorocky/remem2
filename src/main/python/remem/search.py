@@ -152,5 +152,13 @@ def cmd_search_cards(ctx: AppCtx) -> None:
     print(f'Search results for text={state.text} folder={state.dir.path if state.dir is not None else "None"}')
     query, params = prepare_query_and_params(state)
     cards = [load_card(r) for r in db.con.execute(query, params)]
+    folder_to_cards: dict[str, list[AnyCard]] = {}
     for card in cards:
-        print(f'{c.mark_info(str(card.id))} {card_to_str(card, cache)}')
+        folder = cache.get_folder_by_id(card.base.folder_id)
+        if folder.path not in folder_to_cards:
+            folder_to_cards[folder.path] = []
+        folder_to_cards[folder.path].append(card)
+    for path in folder_to_cards:
+        print(path)
+        for card in folder_to_cards[path]:
+            print(f'{c.mark_info(str(card.id))} {card_to_str(card, cache)}')

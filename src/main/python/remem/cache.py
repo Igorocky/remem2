@@ -106,6 +106,9 @@ class Cache:
         cur_folder_id = self._get_int(Cache._sn_curr_folder)
         self.set_curr_folder(cur_folder_id)
         self._all_folders = self._load_all_folders()
+        self._id_to_folder: dict[int, FolderWithPathDto] = {}
+        for folder in self._all_folders:
+            self._id_to_folder[folder.id] = folder
 
     _sn_card_tran_lang1_id = 'card_tran_lang1_id'
 
@@ -154,3 +157,6 @@ class Cache:
 
     def get_all_folders(self) -> list[FolderWithPathDto]:
         return self._all_folders
+
+    def get_folder_by_id(self, folder_id: int) -> FolderWithPathDto:
+        return self._id_to_folder[folder_id]
