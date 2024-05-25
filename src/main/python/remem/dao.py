@@ -288,6 +288,10 @@ def select_language(con: Connection, lang_id: int) -> Language | None:
     return None if row is None else Language(**row)
 
 
+def select_all_languages(con: Connection) -> list[Language]:
+    return [Language(**row) for row in con.execute('select * from LANGUAGE order by name')]
+
+
 def update_language(con: Connection, lang: Language) -> None:
     con.execute(""" update LANGUAGE set name = :name, ext_id = :ext_id where id = :id """, lang.__dict__)
 

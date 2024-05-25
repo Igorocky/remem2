@@ -12,7 +12,8 @@ from remem.commands import CollectionOfCommands
 from remem.common import Try, try_, select_folders
 from remem.console import select_single_option
 from remem.dao import insert_folder, select_folder, delete_folder, insert_card, select_all_queries, insert_query, \
-    update_query, delete_query, select_card, update_card, update_folder, insert_language
+    update_query, delete_query, select_card, update_card, update_folder, insert_language, select_all_languages, \
+    update_language, delete_language
 from remem.dtos import CardTranslate, AnyCard, Query, Folder, CardFillGaps, Language
 from remem.search import cmd_search_cards
 from remem.ui import render_add_card_view, render_card_translate, render_query, open_dialog, render_card_fill
@@ -385,6 +386,39 @@ def cmd_make_new_language(ctx: AppCtx) -> None:
     print(c.mark_info("New language created: ") + name)
 
 
+def cmd_edit_language(ctx: AppCtx) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    all_languages = select_all_languages(db.con)
+    print(c.mark_prompt('Select a language to edit:'))
+    idx = select_single_option(c, [lang.name for lang in all_languages])
+    if idx is None:
+        return
+    lang_to_edit = all_languages[idx]
+
+    old_name = lang_to_edit.name
+    new_name = c.input(f'Enter new name for "{old_name}": ').strip()
+    if new_name == '':
+        c.error('Cancelled')
+        return
+    lang_to_edit.name = new_name
+    update_language(db.con, lang_to_edit)
+    cache.refresh_languages()
+    c.info(f'Renamed "{old_name}" to "{new_name}"')
+
+
+def cmd_delete_language(ctx: AppCtx) -> None:
+    c, db, cache = ctx.console, ctx.database, ctx.cache
+    all_languages = select_all_languages(db.con)
+    print(c.mark_prompt('Select a language to delete:'))
+    idx = select_single_option(c, [lang.name for lang in all_languages])
+    if idx is None:
+        return
+    lang_to_delete = all_languages[idx]
+    delete_language(db.con, lang_to_delete.id)
+    cache.refresh_languages()
+    c.info(f'Deleted "{lang_to_delete.name}" language.')
+
+
 def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     def add_command(cat: str, name: str, cmd: Callable[[AppCtx], None]) -> None:
         commands.add_command(cat, name, lambda: cmd(ctx))
@@ -413,3 +447,5 @@ def add_data_commands(ctx: AppCtx, commands: CollectionOfCommands) -> None:
     add_command('Database', 'backup database', cmd_backup_database)
 
     add_command('Language', 'make new language', cmd_make_new_language)
+    add_command('Language', 'edit language', cmd_edit_language)
+    add_command('Language', 'delete language', cmd_delete_language)
