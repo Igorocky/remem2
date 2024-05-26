@@ -24,6 +24,8 @@ def split_text_to_words(text: str) -> dict[str, int]:
     words = [sanitize_word(w) for w in re.split(r'\W+', text)]
     counts = {}
     for w in words:
+        if len(w) == 0 or w[0].isdigit() or w[-1].isdigit():
+            continue
         if w not in counts:
             counts[w] = 1
         else:
@@ -40,7 +42,6 @@ def print_word_counts(counts: dict[str, int], dst_file: str) -> None:
     for c in grp_by_count:
         grp_by_count[c].sort()
     sorted_counts = sorted(grp_by_count.keys())
-    sorted_counts.reverse()
     with open(dst_file, 'w', encoding='utf-8') as file:
         for c in sorted_counts:
             for w in grp_by_count[c]:
