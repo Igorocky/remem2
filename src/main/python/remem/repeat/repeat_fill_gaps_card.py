@@ -13,6 +13,7 @@ orange = (255, 109, 10)
 
 @dataclass
 class FillGapsTaskState(RepeatTaskState):
+    show_hint: bool = False
     card: CardFillGaps = field(default_factory=lambda: CardFillGaps())
     lang_str: str = ''
     card_is_valid: bool = False
@@ -60,10 +61,12 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
         cur_gap_idx = None
 
     # commands
+    show_hint_cmd = 'h - show hint    ' if cur_gap_idx is not None and not state.show_hint else ''
     show_answer_cmd = 'a - show answer    ' if cur_gap_idx is not None and not state.show_answer else ''
     skip_cmd = '' if cur_gap_idx is None and state.card_is_valid else '    s - skip this task'
     open_dict_cmd = '    d - find in dictionary' if any(v is not None for v in state.first_user_inputs) else ''
-    c.hint(f'{show_answer_cmd}e - exit    u - update card    p - show parameters{open_dict_cmd}{skip_cmd}')
+    c.hint(
+        f'{show_hint_cmd}{show_answer_cmd}e - exit    u - update card    p - show parameters{open_dict_cmd}{skip_cmd}')
     c.print()
 
     if not state.card_is_valid:
@@ -83,8 +86,11 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
     for i in range(cur_gap_idx if cur_gap_idx is not None else len(state.answers)):
         status = c.mark_success('V')
         answer = state.answers[i]
+        hint = state.hints[i]
         note = state.notes[i]
         c.print(f'{status} #{i + 1} {answer}')
+        if hint != '':
+            c.print(f'    {hint}')
         if note != '':
             c.print(f'    {note}')
     if cur_gap_idx is None or cur_gap_idx > 0:
@@ -111,11 +117,6 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
     text_arr.append(state.text_parts[-1])
     c.print(' '.join(text_arr).strip())
     c.print()
-    if cur_gap_idx is not None:
-        hint = state.hints[cur_gap_idx]
-        if hint != '':
-            c.print(c.mark_info('Hint: ') + hint)
-            c.print()
 
     # user_input
     if state.user_input is not None:
@@ -131,7 +132,14 @@ def render_state(c: Console, state: FillGapsTaskState) -> None:
             c.error('X')
             c.print()
 
-    # answer for curr gap
+    # the hint for curr gap
+    if state.show_hint and cur_gap_idx is not None:
+        c.info(f'Hint:')
+        c.print()
+        c.print(state.hints[cur_gap_idx])
+        c.print()
+
+    # the answer for curr gap
     if state.show_answer and cur_gap_idx is not None:
         c.info(f'The answer for the gap #{cur_gap_idx + 1} is:')
         c.print()
@@ -164,6 +172,7 @@ def process_user_input(
             user_input: None | str = None,
             correctness_indicator: bool | None = None,
             correct_text_entered: list[bool] | None = None,
+            show_hint: bool = False,
             show_answer: bool = False,
             edit_card: bool = False,
             print_stats: bool = False,
@@ -178,6 +187,7 @@ def process_user_input(
             user_input=user_input,
             correctness_indicator=correctness_indicator,
             correct_text_entered=first_defined(correct_text_entered, st.correct_text_entered),
+            show_hint=show_hint,
             show_answer=show_answer,
             edit_card=edit_card,
             print_stats=print_stats,
@@ -204,6 +214,8 @@ def process_user_input(
                 return update_state(state, task_continuation=TaskContinuation.EXIT)
             case 's':
                 return update_state(state, task_continuation=TaskContinuation.NEXT_TASK)
+            case 'h' if cur_gap_idx is not None:
+                return update_state(state, show_hint=True)
             case 'a' if cur_gap_idx is not None:
                 if state.first_user_inputs[cur_gap_idx] is None:
                     first_user_inputs = state.first_user_inputs.copy()

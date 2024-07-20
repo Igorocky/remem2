@@ -123,7 +123,7 @@ class FlowTest(TestCase):
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+            f"""{hint}h - show hint    a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
 
 {info}Description:{end}
 
@@ -132,8 +132,6 @@ descr
 {prompt}Fill the gap #1:{end}
 
 part1 {_orange}#1{end} part2 {_orange}#2{end} part3
-
-{info}Hint: {end}hint1
 
 """,
             self._get_text_printed_to_console()
@@ -172,20 +170,19 @@ part1 {_orange}#1{end} part2 {_orange}#2{end} part3
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
+            f"""{hint}h - show hint    a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {info}Description:{end}
 
 descr
 
 {success}V{end} #1 hidden1
+    hint1
     note1
 
 {prompt}Fill the gap #2:{end}
 
 part1 hidden1 part2 {_orange}#2{end} part3
-
-{info}Hint: {end}hint2
 
 """,
             self._get_text_printed_to_console()
@@ -253,20 +250,19 @@ part1 hidden1 part2 {_orange}#2{end} part3
 
         # then
         self.assertEqual(
-            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
+            f"""{hint}h - show hint    a - show answer    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {info}Description:{end}
 
 descr
 
 {success}V{end} #1 hidden1
+    hint1
     note1
 
 {prompt}Fill the gap #2:{end}
 
 part1 hidden1 part2 {_orange}#2{end} part3
-
-{info}Hint: {end}hint2
 
 hidden3
 
@@ -338,20 +334,19 @@ hidden3
 
         # then
         self.assertEqual(
-            f"""{hint}e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
+            f"""{hint}h - show hint    e - exit    u - update card    p - show parameters    d - find in dictionary    s - skip this task{end}
 
 {info}Description:{end}
 
 descr
 
 {success}V{end} #1 hidden1
+    hint1
     note1
 
 {prompt}Fill the gap #2:{end}
 
 part1 hidden1 part2 {_orange}#2{end} part3
-
-{info}Hint: {end}hint2
 
 {info}The answer for the gap #2 is:{end}
 
@@ -406,8 +401,10 @@ hidden2
 descr
 
 {success}V{end} #1 hidden1
+    hint1
     note1
 {success}V{end} #2 hidden2
+    hint2
     note2
 
 {info}Notes:{end}
@@ -445,6 +442,214 @@ part1 hidden1 part2 hidden2 part3
                 user_input=None,
                 correctness_indicator=None,
                 correct_text_entered=[True, True],
+                err_msg=None,
+            ),
+            state
+        )
+
+    def test_show_hint(self) -> None:
+        # given
+        task_id = 98456
+        self._init_mocks()
+        card = make_simple_card()
+        task = Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps])
+        state = make_initial_state(self.cache, card, task)
+
+        # when render the initial state
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}h - show hint    a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+
+{info}Description:{end}
+
+descr
+
+{prompt}Fill the gap #1:{end}
+
+part1 {_orange}#1{end} part2 {_orange}#2{end} part3
+
+""",
+            self._get_text_printed_to_console()
+        )
+
+        # when show hint
+        state = process_user_input(state, '`h')
+
+        # then
+        self.assertEqual(
+            FillGapsTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps]),
+                show_answer=False,
+                show_hint=True,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                card=card,
+                lang_str='EN',
+                card_is_valid=True,
+                text_parts=['part1', 'part2', 'part3'],
+                answers=['hidden1', 'hidden2'],
+                hints=['hint1', 'hint2'],
+                notes=['note1', 'note2'],
+                first_user_inputs=[None, None],
+                user_input=None,
+                correctness_indicator=None,
+                correct_text_entered=[False, False],
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when render the state after a hint was requested
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+
+{info}Description:{end}
+
+descr
+
+{prompt}Fill the gap #1:{end}
+
+part1 {_orange}#1{end} part2 {_orange}#2{end} part3
+
+{info}Hint:{end}
+
+hint1
+
+""",
+            self._get_text_printed_to_console()
+        )
+
+        # when press enter
+        state = process_user_input(state, '')
+
+        # then
+        self.assertEqual(
+            FillGapsTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps]),
+                show_answer=False,
+                show_hint=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                card=card,
+                lang_str='EN',
+                card_is_valid=True,
+                text_parts=['part1', 'part2', 'part3'],
+                answers=['hidden1', 'hidden2'],
+                hints=['hint1', 'hint2'],
+                notes=['note1', 'note2'],
+                first_user_inputs=[None, None],
+                user_input=None,
+                correctness_indicator=None,
+                correct_text_entered=[False, False],
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when render the state after Enter was pressed
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}h - show hint    a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+
+{info}Description:{end}
+
+descr
+
+{prompt}Fill the gap #1:{end}
+
+part1 {_orange}#1{end} part2 {_orange}#2{end} part3
+
+""",
+            self._get_text_printed_to_console()
+        )
+
+        # when show hint the second time
+        state = process_user_input(state, '`h')
+
+        # then
+        self.assertEqual(
+            FillGapsTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps]),
+                show_answer=False,
+                show_hint=True,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                card=card,
+                lang_str='EN',
+                card_is_valid=True,
+                text_parts=['part1', 'part2', 'part3'],
+                answers=['hidden1', 'hidden2'],
+                hints=['hint1', 'hint2'],
+                notes=['note1', 'note2'],
+                first_user_inputs=[None, None],
+                user_input=None,
+                correctness_indicator=None,
+                correct_text_entered=[False, False],
+                err_msg=None,
+            ),
+            state
+        )
+
+        # when render the state after a hint was requested the second time
+        render_state(self.console, state)
+
+        # then
+        self.assertEqual(
+            f"""{hint}a - show answer    e - exit    u - update card    p - show parameters    s - skip this task{end}
+
+{info}Description:{end}
+
+descr
+
+{prompt}Fill the gap #1:{end}
+
+part1 {_orange}#1{end} part2 {_orange}#2{end} part3
+
+{info}Hint:{end}
+
+hint1
+
+""",
+            self._get_text_printed_to_console()
+        )
+
+        # when correct input is entered
+        state = process_user_input(state, 'hidden1')
+
+        # then
+        self.assertEqual(
+            FillGapsTaskState(
+                task=Task(id=task_id, task_type_id=self.cache.task_types_si[TaskTypes.fill_gaps]),
+                show_answer=False,
+                show_hint=False,
+                edit_card=False,
+                print_stats=False,
+                hist_rec=None,
+                task_continuation=TaskContinuation.CONTINUE_TASK,
+                card=card,
+                lang_str='EN',
+                card_is_valid=True,
+                text_parts=['part1', 'part2', 'part3'],
+                answers=['hidden1', 'hidden2'],
+                hints=['hint1', 'hint2'],
+                notes=['note1', 'note2'],
+                first_user_inputs=['hidden1', None],
+                user_input=None,
+                correctness_indicator=None,
+                correct_text_entered=[True, False],
                 err_msg=None,
             ),
             state
