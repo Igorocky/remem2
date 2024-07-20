@@ -37,7 +37,7 @@ def cmd_make_new_folder(ctx: AppCtx) -> None:
 def cmd_show_current_folder(ctx: AppCtx) -> None:
     c, db, cache = ctx.console, ctx.database, ctx.cache
     print(c.mark_info('Current folder: '), end='')
-    print('/' + '/'.join([f'{f.name}:{f.id}' for f in cache.get_curr_folder_path()]))
+    print(cache.get_curr_folder_path_str())
 
 
 def list_folders(ctx: AppCtx, show_hidden: bool) -> None:

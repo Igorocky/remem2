@@ -101,6 +101,9 @@ class Cache:
     def get_curr_folder_path(self) -> list[Folder]:
         return self._cur_folder_path
 
+    def get_curr_folder_path_str(self) -> str:
+        return '/' + '/'.join([f'{f.name}:{f.id}' for f in self.get_curr_folder_path()])
+
     def set_curr_folder(self, folder_id: int | None) -> None:
         self._set_int(Cache._sn_curr_folder, folder_id)
         self._cur_folder_path = [] if folder_id is None else select_folder_path(self._db.con, folder_id)

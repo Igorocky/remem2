@@ -35,6 +35,7 @@ def main() -> None:
         settings_path = sys.argv[1].strip()
     ctx = init_app_context(settings_path)
     c = ctx.console
+    cache = ctx.cache
     commands = CollectionOfCommands()
     commands.add_command('', 'show help', lambda: show_help(commands, c))
     commands.add_command('', 'exit remem', lambda: exit(0))
@@ -45,6 +46,7 @@ def main() -> None:
     while True:
         try:
             print(delim)
+            print(cache.get_curr_folder_path_str())
             inp = c.input('> ').strip()
             cmds = commands.find_commands_by_pattern(inp)
             if len(cmds) == 0:
