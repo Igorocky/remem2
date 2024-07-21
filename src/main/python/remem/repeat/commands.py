@@ -204,7 +204,7 @@ def cmd_repeat_tasks(ctx: AppCtx) -> None:
         return
 
     selected_folders = select_all_folders_recursively(con=ctx.database.con, root_folder_id=curr_folder_path[-1].id)
-    c.info('\nSelected folders:')
+    c.info('Selected folders:')
     for f in selected_folders:
         print(f.path)
     print()
