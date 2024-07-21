@@ -1,6 +1,7 @@
 from sqlite3 import Connection
 
 from remem.common import fit_to_range
+from remem.dao_base import select_all_folders_recursively
 from remem.database import Database
 from remem.dtos import Folder, FolderWithPathDto
 
@@ -56,19 +57,6 @@ class Cache:
             self.lang_si[lang_name] = lang_id
             self.lang_is[lang_id] = lang_name
 
-    def _load_all_folders(self) -> list[FolderWithPathDto]:
-        return [FolderWithPathDto(**r) for r in self._db.con.execute("""
-            with recursive folders(id, path, is_hidden) as (
-                select id, '/'||name as path, name like '.%' as is_hidden from FOLDER where parent_id is null
-                union all
-                select ch.id, pr.path||'/'||ch.name as path, pr.is_hidden or ch.name like '.%' as is_hidden
-                from folders pr inner join FOLDER ch on pr.id = ch.parent_id
-                where ch.name not like '.%'
-            )
-            select id, path, is_hidden from folders
-            order by path
-        """)]
-
     def _read_value_from_db(self, key: str) -> str | None:
         for r in self._db.con.execute('select value from CACHE where key = ?', [key]):
             value = str(r['value'])
@@ -111,7 +99,7 @@ class Cache:
     def refresh_folders(self) -> None:
         cur_folder_id = self._get_int(Cache._sn_curr_folder)
         self.set_curr_folder(cur_folder_id)
-        self._all_folders = self._load_all_folders()
+        self._all_folders = select_all_folders_recursively(con=self._db.con, root_folder_id=None)
         self._id_to_folder: dict[int, FolderWithPathDto] = {}
         for folder in self._all_folders:
             self._id_to_folder[folder.id] = folder

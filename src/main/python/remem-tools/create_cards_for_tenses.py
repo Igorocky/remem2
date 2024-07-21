@@ -2,7 +2,8 @@ import dataclasses
 
 from remem.app_context import init_app_context
 from remem.app_settings import AppSettings
-from remem.dao import insert_folder, insert_card
+from remem.dao import insert_card
+from remem.dao_base import insert_folder
 from remem.dtos import Folder, CardTranslate, BaseCard
 
 

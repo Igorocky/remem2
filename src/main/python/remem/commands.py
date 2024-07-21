@@ -1,7 +1,6 @@
 import re
 from dataclasses import dataclass
 from typing import Callable, Pattern
-from unittest import TestCase
 
 
 @dataclass
@@ -57,8 +56,6 @@ def arr_str_matches_pat(arr: list[str], pat: CmdPat) -> bool:
             return go(name_idx + 1, pat_idx)
 
     return go(0, 0)
-
-
 
 
 def cmd_matches_pat(cmd: Cmd, pat: CmdPat) -> bool:

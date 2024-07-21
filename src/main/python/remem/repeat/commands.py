@@ -7,10 +7,11 @@ import remem.repeat.repeat_fill_gaps_card as repeat_fill_gaps_card
 import remem.repeat.repeat_translate_card as repeat_translate_card
 from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
-from remem.common import first_defined, select_folders
+from remem.common import first_defined
 from remem.console import select_multiple_options, select_single_option, clear_screen
 from remem.constants import TaskTypes
-from remem.dao import insert_task_hist, select_card
+from remem.dao import select_card
+from remem.dao_base import insert_task_hist, select_all_folders_recursively
 from remem.data_commands import edit_card_by_id
 from remem.dtos import Task, TaskHistRec
 from remem.repeat import TaskContinuation
@@ -197,12 +198,12 @@ def repeat_task(ctx: AppCtx, task: Task, print_stats: Callable[[], bool]) -> Tas
 def cmd_repeat_tasks(ctx: AppCtx) -> None:
     c = ctx.console
 
-    selected_folders = select_folders(c, ctx.cache.get_all_folders(), 'Folder name: ')
-    if selected_folders is None:
-        c.error('No folders found')
+    curr_folder_path = ctx.cache.get_curr_folder_path()
+    if len(curr_folder_path) == 0:
+        c.error('No folder selected')
         return
-    if len(selected_folders) == 0:
-        return
+
+    selected_folders = select_all_folders_recursively(con=ctx.database.con, root_folder_id=curr_folder_path[-1].id)
     c.info('\nSelected folders:')
     for f in selected_folders:
         print(f.path)

@@ -2,7 +2,8 @@ import xml.etree.ElementTree as et
 from typing import Tuple
 
 from remem.app_context import init_app_context
-from remem.dao import insert_folder, insert_translate_card
+from remem.dao import insert_translate_card
+from remem.dao_base import insert_folder
 from remem.dtos import Folder
 
 tmp_dir_path = '../../../temp/'

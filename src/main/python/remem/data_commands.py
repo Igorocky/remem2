@@ -11,8 +11,9 @@ from remem.app_context import AppCtx
 from remem.commands import CollectionOfCommands
 from remem.common import Try, try_, select_folders
 from remem.console import select_single_option
-from remem.dao import insert_folder, select_folder, delete_folder, insert_card, select_all_queries, insert_query, \
-    update_query, delete_query, select_card, update_card, update_folder, insert_language, select_all_languages, \
+from remem.dao import insert_card, select_card
+from remem.dao_base import insert_folder, select_folder, delete_folder, select_all_queries, insert_query, \
+    update_query, delete_query, update_card, update_folder, insert_language, select_all_languages, \
     update_language, delete_language
 from remem.dtos import CardTranslate, AnyCard, Query, Folder, CardFillGaps, Language
 from remem.search import cmd_search_cards

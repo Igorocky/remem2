@@ -6,7 +6,7 @@ from typing import Callable, Any, Tuple
 from remem.app_context import AppCtx
 from remem.common import duration_str_to_seconds, seconds_to_duration_str, print_table_from_dicts
 from remem.console import clear_screen
-from remem.dao import select_task_hist, select_tasks_with_base_cards_by_ids
+from remem.dao_base import select_task_hist, select_tasks_with_base_cards_by_ids
 from remem.dtos import Task, TaskHistRec
 from remem.repeat import TaskContinuation, TaskWithHist, select_random_tasks_from_beginning
 
