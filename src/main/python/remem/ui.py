@@ -235,6 +235,7 @@ def render_card_fill(
     return render_grid(parent, [
         [Label(text='Language', sticky=tk.E), Combobox(values=langs, width=lang_width, var=lang_str, sticky=tk.W)],
         [Label(text='Description', sticky=tk.NE), Text(width=100, height=5, init_value=card.descr, holder=descr)],
+        [Empty(), Label(text='format: [[word|translation|transcription]] or [[answer|hint|note]]', sticky=tk.NW)],
         [Label(text='Text', sticky=tk.NE), Text(width=100, height=5, init_value=card.text, holder=text)],
         [Label(text='Notes', sticky=tk.NE), Text(width=100, height=5, init_value=card.notes, holder=notes)],
         [Empty(), Button(text='Save' if is_edit else 'Add', sticky=tk.E, cmd=do_save)],
